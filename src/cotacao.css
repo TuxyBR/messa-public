@@ -2,7 +2,7 @@
   .marca-dagua {
     display: block;
     position: fixed;
-    top: 0px;
+    top: 10px;
     right: 20px;
     width: 40%;
     height: 400px;
@@ -18,7 +18,40 @@
   .botoes-upper {
     display: none !important;
   }
-  
+}
+
+.botoes-upper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  width: 100%;
+  gap: 10px;
+}
+
+body {
+  margin: 1;
+  padding: 1;
+}
+
+.gbotoes {
+  display: flex;
+  gap: 10px;
+}
+
+.bleft {
+  justify-content: flex-start;
+  flex: 1;
+}
+
+.bcenter {
+  justify-content: center;
+  flex: 1;
+}
+
+.bright {
+  justify-content: flex-end;
+  flex: 1;
 }
 
 body {
