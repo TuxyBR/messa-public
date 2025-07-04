@@ -16,12 +16,8 @@
   }
     
   .botoes-upper {
-    display: none;
+    display: none !important;
   }
-}
-
-cor {
-  color: #bd1717
 }
 
 body {
@@ -113,7 +109,6 @@ th {
   height: 100px;
   border: 1px solid #ccc;
 }
-
 
 .left  { text-align: left !important; }
 .right { text-align: right !important; }
@@ -231,7 +226,7 @@ th {
 }
 
 .logo-container {
-  height: 70px; /* altura máxima desejada da linha da tabela */
+  height: 70px;
   overflow: visible;
   display: flex;
   align-items: center;
