@@ -1,4 +1,14 @@
 @media print {
+  body {
+    margin: 1cm;
+    zoom: 67%;
+  }
+
+  @page {
+    margin: 1cm;
+    size: A4 portrait;
+  }
+
   .marca-dagua {
     display: block;
     position: fixed;
