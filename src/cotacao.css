@@ -1,7 +1,7 @@
 @media print {
   body {
     margin: 1cm;
-    zoom: 67%;
+    zoom: 60%;
   }
 
   @page {
@@ -247,7 +247,7 @@ th {
   background: #fdfdfd;
 }
 
-.fornecedor-select {
+.fornecedor {
   width: 100%;
   border: none;
   background: transparent;
@@ -257,7 +257,7 @@ th {
   height: 100%;
   resize: none;
 }
-.fornecedor-select:focus {
+.fornecedor:focus {
   outline: 1px solid #aaa;
   background: #fdfdfd;
 }
