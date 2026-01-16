@@ -1,0 +1,393 @@
+*,
+*::before,
+*::after {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  font-size: 14px;
+}
+@media print {
+  body {
+    margin: 1cm;
+    zoom: 60%;
+  }
+
+  @page {
+    margin: 1cm;
+    size: A4 landscape;
+  }
+
+  .marca-dagua {
+    display: block;
+    position: fixed;
+    top: 10px;
+    right: 20px;
+    width: 40%;
+    height: 400px;
+    background-image: url("https://cdn.jsdelivr.net/gh/TuxyBR/messa-public@main/src/watermark.png") !important;
+    background-repeat: no-repeat;
+    background-size: contain;
+    opacity: 0.07;
+    pointer-events: none;
+    z-index: 0;
+    margin-top: 0px;
+  }
+
+  .hideInPrint {
+    display: none !important;
+  }
+  .acao-coluna {
+    display: none !important;
+  }
+  .showOnlyInPrint {
+    display: block !important;
+  }
+
+  .editavel {
+    background-color: transparent !important;
+  }
+  
+  .input {
+    border: none !important;
+  }
+  .bottomLine {
+    border-bottom: 1px solid #000 !important;
+  }
+}
+.logo-img {
+  padding: 8px;
+  width: 100%;
+  max-width: 280px;
+  max-height: 160px;
+  margin: 0 auto;
+}
+.descricao {
+  width: 100%;
+  height: 100%;
+  border: none;
+  font-family: inherit;
+  font-size: inherit;
+  resize: none;
+}
+.descricao:focus {
+  outline: 1px solid #3f3f3f;
+  background: #dfc5b9;
+}
+.column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border: 1px solid #3f3f3f;
+}
+.noBorder {
+  border: none;
+}
+.header {
+  display: flex;
+  min-height: 90px;
+}
+.logo {
+  max-width: 300px;
+}
+.input {
+  flex: 1;
+  width: 55%;
+  height: 100%;
+  border: 1px dotted #3f3f3f;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  resize: none;
+}
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  padding: 0px 8px;
+}
+.status-block {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+th,
+td {
+  height: 23px;
+  border: 1px solid #aaa;
+  text-align: left;
+  padding: 0px;
+}
+th {
+  background-color: #ccc;
+  padding: 0px 5px 0px 5px;
+}
+table {
+  border-collapse: collapse;
+}
+
+.side-padding {
+  padding: 0px 5px 0px 5px;
+}
+
+.add-button {
+  border: none;
+  margin: none;
+  width: 100%;
+  cursor: pointer;
+  background-color: transparent;
+  color: black;
+  padding: 6px;
+  font-size: 20px;
+  font-weight: bold;
+  line-height: 1;
+}
+.add-button:hover {
+  background-color: #b3bbc2;
+  transform: scale(1.02);
+}
+
+.botao {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: bold;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  background-color: #747070;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+.botao:hover {
+  background-color: #4a4e52;
+  transform: scale(1.02);
+}
+
+.botao:active {
+  transform: scale(0.98);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.botao:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.button-block {
+  gap: 8px;
+}
+.editavel {
+  background-color: #ffdfd0;
+}
+
+.delete-button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #000;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 2px 0;
+}
+
+.delete-button:hover {
+  color: #850f0f;
+  transform: scale(1.05);
+}
+.line-size {
+  width: 150px;
+  padding-right: 5px;
+}
+.badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  width: 80px;
+  height: 25px;
+  background-color: #ffd092;
+}
+.badge-bigger {
+  width: 120px;
+}
+.badge-title {
+  width: 70px;
+  text-align: end;
+}
+.table-field {
+  width: 100%;
+  height: 100%;
+  border: none;
+  font-family: inherit;
+  font-size: inherit;
+  resize: none;
+}
+.table-field:focus {
+  outline: 1px solid #3f3f3f;
+  background: #dfc5b9;
+}
+.dropdown-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.dropdown-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  background: white;
+  border: 1px solid #ccc;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  display: none;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+.dropdown-item {
+  padding: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  border-bottom: 1px solid #eee;
+  color: #333;
+}
+.dropdown-item:hover {
+  background-color: #e0e0e0;
+}
+.tCenter{
+  text-align: center;
+}
+.input-error {
+  color: #721c24;
+  background-color: #f8d7da !important;
+  border: 1px solid #f5c6cb !important;
+}
+.saldo-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  cursor: pointer;
+}
+.saldo-popup {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: white;
+  border: 1px solid #999;
+  padding: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  z-index: 2000;
+  width: 600px;
+  max-height: 400px;
+  overflow-y: auto;
+  font-size: 11px;
+  color: #333;
+}
+.saldo-container:hover .saldo-popup {
+  display: block;
+}
+.saldo-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.saldo-table th, .saldo-table td {
+  border: 1px solid #eee;
+  padding: 4px;
+  text-align: left;
+}
+.saldo-table th {
+  background-color: #f0f0f0;
+  font-weight: bold;
+}
+.saldo-table td.num {
+  text-align: right;
+}
+.saldo-table tr {
+  cursor: pointer;
+}
+.saldo-table tr.selected {
+  background-color: #e3f2fd;
+}
+input[type="date"]:disabled::-webkit-calendar-picker-indicator {
+  display: none;
+}
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 3000;
+}
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 90%;
+  height: 90%;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+}
+.showOnAprovado {
+  display: none;
+}
+
+.medicao-aprovada .acao-coluna {
+  display: none !important;
+}
+.line {
+  display: flex;
+  justify-content: space-between;
+}
+.lineStart {
+  display: flex;
+  justify-content: flex-start;
+}
+.infoName {
+  min-width: 150px;
+  max-width: 150px;
+}
+.infoPag {
+  min-width: 80px;
+  max-width: 80px;
+}
+.infoBanc {
+  min-width: 130px;
+  max-width: 130px;
+}
+.dataBanc {
+  display:flex;
+  flex:1;
+  justify-content: center;
+  align-items: center;
+}
