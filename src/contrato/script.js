@@ -970,167 +970,108 @@ function calcularTotais() {
   atualizarPopupSaldo();
 }
 
-function gerarDadosTeste() {
-  const randFloat = (max) => parseFloat((Math.random() * max).toFixed(2));
-  const randInt = (max) => Math.floor(Math.random() * max);
-  
-  const fornecedores = [
+const DADOS_ESTATICOS = {
+  contratos: [
     {
-      id: 1,
-      name: "Construtora XYZ Ltda",
-      cnpj: "12.345.678/0001-90",
-      endereco: "Rua das Pedras, 123 - Centro",
-      banco: "Banco do Brasil",
-      agencia: "1234-5",
-      conta: "98765-4",
-      telefone: "(11) 9999-9999",
-      email: "contato@xyz.com",
-      pix: "12.345.678/0001-90"
-    },
-    {
-      id: 2,
-      name: "Empreiteira ABC S.A.",
-      cnpj: "98.765.432/0001-10",
-      endereco: "Av. Paulista, 1000 - Bela Vista",
-      banco: "Itau",
-      agencia: "4321-0",
-      conta: "12345-6",
-      telefone: "(11) 8888-8888",
-      email: "financeiro@abc.com",
-      pix: "financeiro@abc.com"
+      id: 5001,
+      fornecedor: {
+        id: 1,
+        name: "XYZ Ltda",
+        cnpj: "12.345.678/0001-90",
+        endereco: "Rua das Pedras, 123 - Centro",
+        banco: "Banco do Brasil",
+        agencia: "1234-5",
+        conta: "98765-4",
+        pix: "12.345.678/0001-90"
+      },
+      pagador: {
+        id: 1,
+        name: "Incorporadora Messa",
+        cnpj: "11.222.333/0001-44",
+        endereco: "Rua da Matriz, 500"
+      },
+      obra: "Obra Residencial 1",
+      enderecoObra: "Rua da Obra 1, 100",
+      servicos: [
+        {
+          idServ: 1001,
+          descricaoServ: "Lançamento de concreto - Rouparia 2",
+          atividade: "Fundação",
+          unidade: "m³",
+          qtdeContratada: 500,
+          valorUnitario: 150
+        },
+        {
+          idServ: 1002,
+          descricaoServ: "Alvenaria - Rouparia 2",
+          atividade: "Alvenaria",
+          unidade: "m²",
+          qtdeContratada: 1000,
+          valorUnitario: 50
+        }
+      ],
+      medicoes: [
+        {
+          id: 1,
+          data: new Date().toISOString().split("T")[0],
+          observacoes: "Primeira medição",
+          pago: true,
+          aprovado: true,
+          dataAprovacao: new Date().toISOString().split("T")[0],
+          dataPagamento: new Date().toISOString().split("T")[0],
+          autorizador: "Eng. Responsável",
+          servicos: [
+            {
+              idServ: 1001,
+              descricaoServ: "Lançamento de concreto - Rouparia 2",
+              atividade: "Fundação",
+              quantidade: 100,
+              unidade: "m³",
+              qtdeContratada: 500,
+              valorUnitario: 150
+            }
+          ]
+        },
+        {
+          id: 2,
+          data: new Date().toISOString().split("T")[0],
+          observacoes: "Segunda medição",
+          pago: false,
+          aprovado: false,
+          dataAprovacao: null,
+          dataPagamento: null,
+          autorizador: null,
+          servicos: [
+            {
+              idServ: 1001,
+              descricaoServ: "Lançamento de concreto - Rouparia 2",
+              atividade: "Fundação",
+              quantidade: 50,
+              unidade: "m³",
+              qtdeContratada: 500,
+              valorUnitario: 150
+            },
+            {
+              idServ: 1002,
+              descricaoServ: "Alvenaria - Rouparia 2",
+              atividade: "Alvenaria",
+              quantidade: 200,
+              unidade: "m²",
+              qtdeContratada: 1000,
+              valorUnitario: 50
+            }
+          ]
+        }
+      ]
     }
-  ];
-
-  const pagadores = [
-    {
-      id: 1,
-      name: "Incorporadora Messa",
-      cnpj: "11.222.333/0001-44",
-      endereco: "Rua da Matriz, 500"
-    }
-  ];
-
-  const atividades = [
-    "Fundação",
-    "Alvenaria",
-    "Instalação Elétrica",
-    "Instalação Hidráulica",
-    "Pintura",
-    "Acabamento",
-    "Cobertura",
-    "Revestimento",
-    "Esquadrias",
-    "Louças e Metais",
-  ];
-  const unidades = ["m²", "m³", "un", "kg", "l", "h"];
-
-  const servicosBase = [
-    { id: 1001, desc: "Lançamento de concreto - Rouparia 2" },
-    { id: 1002, desc: "Corte, dobra e montagem de aço - Rouparia 2" },
-    { id: 1003, desc: "Alvenaria - Rouparia 2" },
-    { id: 1004, desc: "Chapisco interno - Rouparia 2" },
-    { id: 1005, desc: "Chapisco externo - Rouparia 2" },
-    { id: 1006, desc: "Reboco interno - Rouparia 2" },
-    { id: 1007, desc: "Reboco externo - Rouparia 2" },
-    { id: 1008, desc: "Contrapiso  - Rouparia 2" },
-    { id: 1009, desc: "Impermeabilização de fundação   - Rouparia 2" },
-    { id: 1010, desc: "Fabricação de forma - passarela 3" },
-    { id: 1011, desc: "Montagem de forma- passarela 3" },
-    { id: 1012, desc: "Fabricação de escoramento- passarela 3" },
-    { id: 1013, desc: "Montagem de escoramento - Rpassarela 3" },
-    { id: 1014, desc: "Lançamento de concreto - passarela 3" },
-    { id: 1015, desc: "Corte, dobra e montagem de aço - passarela 3" },
-    { id: 1016, desc: "Compactação de solo manual" },
-    { id: 1017, desc: "Impermeabilização polimerica do parede  - Bangalô  7" },
-    { id: 1018, desc: "Assentamento de bloco - Academia" },
-    { id: 1019, desc: "Reboco interno Bangalô - Academia" },
-    { id: 1020, desc: "Reboco externo Bangalô - Academia" },
-  ];
-
-  const contratosGerados = [5001, 5002].map((idContrato, index) => {
-    const fornecedor = fornecedores[index % fornecedores.length];
-    const pagador = pagadores[0];
-    
-    const servicosDoContrato = servicosBase.map((m) => ({
-      idServ: m.id,
-      descricaoServ: m.desc,
-      atividade: atividades[randInt(atividades.length)],
-      quantidade: 0,
-      unidade: unidades[randInt(unidades.length)],
-      qtdeContratada: randFloat(500) + 100,
-      valorUnitario: randFloat(500),
-    }));
-
-    const medicoes = [];
-    for (let mId = 1; mId <= 2; mId++) {
-      const medServicos = [];
-      for (let j = 0; j < 5; j++) {
-        const base = servicosDoContrato[randInt(servicosDoContrato.length)];
-        const qtd = randFloat(50);
-        
-        medServicos.push({
-          idServ: base.idServ,
-          descricaoServ: base.descricaoServ,
-          atividade: base.atividade,
-          quantidade: qtd,
-          unidade: base.unidade,
-          qtdeContratada: base.qtdeContratada,
-          valorUnitario: base.valorUnitario,
-        });
-      }
-      
-      const aprovado = Math.random() < 0.5;
-      const pago = Math.random() < 0.5;
-      
-      medicoes.push({
-        id: mId,
-        data: new Date().toISOString().split("T")[0],
-        servicos: medServicos,
-        observacoes: `Observações da medição ${mId} do contrato ${idContrato}`,
-        pago: pago,
-        aprovado: aprovado,
-        dataAprovacao: aprovado ? new Date().toISOString().split("T")[0] : null,
-        dataPagamento: pago ? new Date().toISOString().split("T")[0] : null,
-        autorizador: aprovado ? "Eng. Responsável" : null,
-      });
-    }
-
-    return {
-      id: idContrato,
-      fornecedor: fornecedor,
-      pagador: pagador,
-      obra: `Obra Residencial ${index + 1}`,
-      enderecoObra: `Rua da Obra ${index + 1}, 100`,
-      servicos: servicosDoContrato,
-      medicoes: medicoes,
-    };
-  });
-
-  dados = { contratos: contratosGerados };
-
-  if (
-    dados.contratos.length > 0 &&
-    dados.contratos[0].medicoes.length > 0
-  ) {
-    const c = dados.contratos[0];
-    const m = c.medicoes[0];
-    document.getElementById("contrato-id").value = c.id;
-    const printEl = document.getElementById("contrato-id-print");
-    if (printEl) printEl.textContent = c.id;
-    document.getElementById("medicao-numero").value = m.id;
-    carregarMedicao(c.id, m.id);
-  }
-
-
-  console.log("Dados gerados:", dados);
-}
+  ]
+};
 
 const CACHE_KEY = "app_dados_cache";
 
 function processarDados(json) {
   dados = json;
   
-  // Recalcular totais (valorTotal) de todos os serviços em todas as medições
   if (dados.contratos) {
     dados.contratos.forEach(c => {
       if (c.medicoes) {
@@ -1154,7 +1095,6 @@ function processarDados(json) {
       savedSelection = JSON.parse(localStorage.getItem("app_selecao_cache"));
     } catch (e) { console.warn(e); }
     
-    // Mantém a seleção atual se existir, senão pega o primeiro
     let cId = null;
     let mId = null;
 
@@ -1170,7 +1110,6 @@ function processarDados(json) {
       }
     }
 
-    // Fallback: Contrato 174, Medição 8 se não houver cache ou se o cache for inválido
     if (!cId) {
       const c174 = dados.contratos.find(x => x.id == 174);
       if (c174) {
@@ -1198,19 +1137,17 @@ function processarDados(json) {
   }
 }
 
-// 1. Tenta carregar do cache
 const cached = localStorage.getItem(CACHE_KEY);
 if (cached) {
   try {
-    console.log("Carregando dados do cache...");
+    console.log("Carregando dados em cache...");
     processarDados(JSON.parse(cached));
   } catch (e) {
     console.warn("Erro ao ler cache", e);
   }
 }
 
-// 2. Busca dados atualizados
-fetch("https://script.google.com/macros/s/AKfycbw4fIoo2KxlW7AItZj3r4ZLYCwue_UYZwCEQenqae2USyhi0ol3s7swf8InFC-VwS4t6w/exec")
+fetch("https://script.google.com/macros/s/AKfycbzMbf4NTg2i5kViI6Ys4dN_VyVP09Mb_Rk0iT0HjOoS-3BK4R-4WxI0UYCvmQXDsGCpyQ/exec")
   .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
   .then(json => {
     console.log("Dados atualizados via API:", json);
@@ -1220,7 +1157,7 @@ fetch("https://script.google.com/macros/s/AKfycbw4fIoo2KxlW7AItZj3r4ZLYCwue_UYZw
   .catch(err => {
     console.warn("Falha na API:", err);
     if (!dados || !dados.contratos) {
-      console.warn("Sem dados (cache ou api), gerando teste...");
-      gerarDadosTeste();
+      console.warn("Erro na API, sem dados em cache, carregando dados estaticos...");
+      processarDados(DADOS_ESTATICOS)
     }
   });
