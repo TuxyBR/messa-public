@@ -1,5 +1,7 @@
-const APIC = "https://script.google.com/macros/s/AKfycbxgR6d6FU0riIt5wEtD3Nm1kPjuRyO5gl1e-TnyypjRBWki4sPuFGRbXosiLm5jJPOZ/exec?sheet=db_fluxo";
-const APIFunc = "https://script.google.com/macros/s/AKfycbzqa2HMZ4IAsUI1MXYd48TpxNH1LEvNIRO7lqi6om7WEA1Vdps-93UYI1B2xSwinkQP/exec";
+const APIC =
+  "https://script.google.com/macros/s/AKfycbxgR6d6FU0riIt5wEtD3Nm1kPjuRyO5gl1e-TnyypjRBWki4sPuFGRbXosiLm5jJPOZ/exec?sheet=db_fluxo";
+const APIFunc =
+  "https://script.google.com/macros/s/AKfycbxUUxct9SmloZqZEVznBs1hxNh4EQ0hcfjWneL6RDvzwlbovWVI_LKzLfLoqpkRurTF/exec";
 const CACHE_KEY = "cache_func";
 const cached = localStorage.getItem(CACHE_KEY);
 const table = document.getElementById("funcionarios");
@@ -17,22 +19,12 @@ function fmtf(v, spaces = 2) {
 
 var dados = [
   {
-    nome: "aaa",
-    atividade: "aba",
-    occ: "123",
-    obs: "1b",
+    nome: "Carregando..",
+    atividade: "",
+    occ: "",
+    obs: "",
     obra: 0,
-    valor: 15,
-    adicional: 0,
-  },
-  {
-    nome: "bbb",
-    atividade: "bab",
-    occ: "456",
-    obs: "2b",
-    obra: 0,
-    valor: 15,
-    adicional: 0,
+    valor: 0,
   },
 ];
 let banco = [];
@@ -83,7 +75,7 @@ function atualizar(input) {
     }
   }
 
-  valorTotal -= obj.adicional?obj.adicional:0;
+  valorTotal -= obj.adicional ? obj.adicional : 0;
   obj.adicional = add;
   valorTotal += add;
 
@@ -107,14 +99,128 @@ function finalizaEdicaoAdicional(input) {
 }
 
 function salvar() {
-  console.log(dados)
+  const catVal = document.getElementById("inputCategoria").value;
+  const bancoVal = document.getElementById("inputBanco").value;
+  const dataVal = document.getElementById("inputData").value;
+
+  if (!catVal || !bancoVal || !dataVal) {
+    Toastify({
+      text: "Preencha todos os dados.",
+      duration: 3000,
+      position: "center",
+      gravity: "bottom",
+      style: { background: "#bd1717" },
+    }).showToast();
+    return;
+  }
+
+  let op = google.script.run
+    .withSuccessHandler()
+    .withFailureHandler((error) => {
+      Toastify({
+        text: `Erro ao obter OP: ${error.message}`,
+        duration: -1,
+        close: true,
+        gravity: "top",
+        position: "center",
+        stopOnFocus: true,
+        style: {
+          background: "#bd1717",
+          color: "#ffffff",
+        },
+      }).showToast();
+      console.warn(error);
+      throw new Error(`Erro ao obter OP: ${error.message}`);
+    })
+    .getOp();
+
   Toastify({
-    text: "Erro ao salvar",
+    text: "Salvando...",
     duration: 2000,
     position: "center",
     gravity: "bottom",
-    style: { background: "#bd1717" }
+    style: { background: "#2196F3" },
   }).showToast();
+
+  const payload = {
+    opFunc: op.opFunc,
+    opDiaria: op.opDiaria,
+    categoria: catVal,
+    banco: bancoVal,
+    data: dataVal,
+    valorTotal: valorTotal,
+    diarista: dados,
+  };
+  console.log(payload);
+
+  fetch(APIFluxo, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+    .then((r) => (r.ok ? r.text() : Promise.reject(r.statusText)))
+    .then((res) => {
+      console.log("Salvo em fluxo:", res);
+    })
+    .catch((err) => {
+      console.error(err);
+      Toastify({
+        text: "Erro ao enviar ao Fluxo de Caixa",
+        duration: 2000,
+        position: "center",
+        gravity: "bottom",
+        style: { background: "#bd1717" },
+      }).showToast();
+    });
+
+  fetch(APIFluxo, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+    .then((r) => (r.ok ? r.text() : Promise.reject(r.statusText)))
+    .then((res) => {
+      console.log("Salvo em fluxo:", res);
+    })
+    .catch((err) => {
+      console.error(err);
+      Toastify({
+        text: "Erro ao enviar ao Financeiro",
+        duration: 2000,
+        position: "center",
+        gravity: "bottom",
+        style: { background: "#bd1717" },
+      }).showToast();
+    });
+
+  fetch(APIFunc, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+    .then((r) => (r.ok ? r.text() : Promise.reject(r.statusText)))
+    .then((res) => {
+      console.log("Salvo:", res);
+      Toastify({
+        text: "Salvo com sucesso!",
+        duration: 2000,
+        position: "center",
+        gravity: "bottom",
+        style: { background: "#00aa25" },
+      }).showToast();
+      setTimeout(function () {
+        try {
+          google.script.host.close();
+        } catch (e) {}
+      }, 500);
+    })
+    .catch((err) => {
+      console.error(err);
+      Toastify({
+        text: "Erro ao salvar em RH",
+        duration: 2000,
+        position: "center",
+        gravity: "bottom",
+        style: { background: "#bd1717" },
+      }).showToast();
+    });
 }
 
 function reloadData() {
@@ -126,7 +232,20 @@ function reloadData() {
           <td>${dados.occ}</td>
           <td>${dados.obs}</td>
           <td>${fmtBRL(dados.valor)}</td>
-          <td style="padding: 0;"><input class="side-pad" type="text" value="${fmtBRL(dados.adicional)}" oninput="atualizar(this)" onblur="finalizaEdicaoAdicional(this)" onfocus="selectAdd(this)"></td>
+          <td>
+            <input 
+              class="side-pad input editavel" 
+              type="text" 
+              style="
+                border-radius:5px;
+                background-color:#fce5cd;
+              "
+              value="${fmtBRL(dados.adicional)}" 
+              oninput="atualizar(this)" 
+              onblur="finalizaEdicaoAdicional(this)" 
+              onfocus="selectAdd(this)"
+            >
+          </td>
         </tr>`;
   });
 
@@ -147,10 +266,67 @@ function processar(json) {
     if (v.banco) banco.push(v.banco);
     if (v.categoria) categoria.push(v.categoria);
   });
-  console.log(`took ${fmtf(performance.now() - start)}ms to process objects`)
+  console.log(`took ${fmtf(performance.now() - start)}ms to process objects`);
 }
 
-{
+function closeDropdown(input) {
+  const dropdown = input.nextElementSibling;
+
+  dropdown.classList.add("hiding");
+  dropdown.addEventListener(
+    "animationend",
+    () => {
+      dropdown.style.display = "none";
+      dropdown.classList.remove("hiding");
+    },
+    { once: true },
+  );
+}
+
+function filtrarContratos(input) {
+  // const wrapper = input.parentElement;
+  // const list = wrapper.querySelector(".dropdown-list");
+  const list = input.nextElementSibling;
+  const term = input.value.toLowerCase();
+
+  let items = [];
+  if (input.id === "inputCategoria") items = categoria;
+  else if (input.id === "inputBanco") items = banco;
+
+  // Populate list with all items if empty
+  if (list.children.length === 0) {
+    [...new Set(items)].forEach((s) => {
+      const div = document.createElement("div");
+      div.className = "dropdown-item";
+      div.textContent = `${s}`;
+      div.onmousedown = function () {
+        input.value = div.textContent;
+        closeDropdown(input);
+      };
+      list.appendChild(div);
+    });
+  }
+
+  list.style.display = "block";
+  list.classList.remove("hiding");
+
+  // Reset highlights
+  Array.from(list.children).forEach(
+    (child) => (child.style.backgroundColor = ""),
+  );
+
+  if (term) {
+    const match = Array.from(list.children).find((item) =>
+      item.textContent.toLowerCase().includes(term),
+    );
+    if (match) {
+      match.scrollIntoView({ block: "nearest" });
+      match.style.backgroundColor = "#d0d0d0";
+    }
+  }
+}
+
+if (true) {
   let start = performance.now();
   Toastify({
     text: "Atualizando dados...",
@@ -163,7 +339,9 @@ function processar(json) {
   fetch(APIC)
     .then((r) => (r.ok ? r.json() : Promise.reject(r.statusText)))
     .then((json) => {
-      console.log(`took ${fmtf(performance.now() - start)}ms to update via api`)
+      console.log(
+        `took ${fmtf(performance.now() - start)}ms to update via api`,
+      );
       console.log("Dados via API:");
       processar(json);
       console.log("banco:", banco);
@@ -178,13 +356,13 @@ function processar(json) {
       }).showToast();
     })
     .catch((err) => {
-      console.log(`took ${fmtf(performance.now() - start)}ms to error`)
+      console.log(`took ${fmtf(performance.now() - start)}ms to error`);
       Toastify({
         text: "Erro ao atualizar.",
         duration: 3000,
         position: "center",
         gravity: "bottom",
-        style: { background: "#bd1717" }
+        style: { background: "#bd1717" },
       }).showToast();
       console.warn("Falha na API:", err);
     });
@@ -192,9 +370,9 @@ function processar(json) {
   fetch(APIFunc)
     .then((r) => (r.ok ? r.json() : Promise.reject(r.statusText)))
     .then((json) => {
-      console.log(`took ${fmtf(performance.now() - start)}ms to get func`)
+      console.log(`took ${fmtf(performance.now() - start)}ms to get func`);
       console.log("Dados func:");
-      dados = json.data
+      dados = json.data;
       Toastify({
         text: "func puxados.",
         duration: 2000,
@@ -202,21 +380,33 @@ function processar(json) {
         gravity: "bottom",
         style: { background: "#00aa25" },
       }).showToast();
-      reloadData()
-      console.log(json.data)
+      document.getElementById("btn-salvar").disabled = false;
+      reloadData();
+      console.log(json.data);
     })
     .catch((err) => {
-      console.log(`took ${fmtf(performance.now() - start)}ms to error`)
+      console.log(`took ${fmtf(performance.now() - start)}ms to error`);
       Toastify({
         text: "Erro ao puxar funcionario.",
         duration: 3000,
         position: "center",
         gravity: "bottom",
-        style: { background: "#bd1717" }
+        style: { background: "#bd1717" },
       }).showToast();
       console.warn("Falha na API:", err);
       if (!dados) {
         console.warn("Nao ha dados em cache.");
       }
+      dados = [
+        {
+          nome: "Erro ao carregar..",
+          atividade: "",
+          occ: "",
+          obs: "",
+          obra: 0,
+          valor: 0,
+        },
+      ];
+      reloadData();
     });
 }
