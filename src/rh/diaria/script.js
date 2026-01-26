@@ -1,7 +1,11 @@
 const APIC =
   "https://script.google.com/macros/s/AKfycbxgR6d6FU0riIt5wEtD3Nm1kPjuRyO5gl1e-TnyypjRBWki4sPuFGRbXosiLm5jJPOZ/exec?sheet=db_fluxo";
 const APIFunc =
-  "https://script.google.com/macros/s/AKfycbxUUxct9SmloZqZEVznBs1hxNh4EQ0hcfjWneL6RDvzwlbovWVI_LKzLfLoqpkRurTF/exec";
+  "https://script.google.com/macros/s/AKfycbyP5WM6Avgiv6fHjWfLfwPSBtpN4O229QrYH7bzrohGED1tSDzKuRzfDamaH1WHcrCO/exec";
+const APIFluxo =
+  "https://script.google.com/macros/s/AKfycbxFAaFl9GmtzC53rNYDQX2PxyWY6EnC5ZAVLTG__eMQLYSljXOTfU20fSvF6YegNuQ6OA/exec";
+const APIFin =
+  "https://script.google.com/macros/s/AKfycbzfd_UlE2AECViyL0DZuh3a2BVely4HePD_3w6N8TeRYpVqeM9v6I8AwqUbnqgcwUKQ/exec";
 const CACHE_KEY = "cache_func";
 const cached = localStorage.getItem(CACHE_KEY);
 const table = document.getElementById("funcionarios");
@@ -114,8 +118,111 @@ function salvar() {
     return;
   }
 
-  let op = google.script.run
-    .withSuccessHandler()
+  google.script.run
+    .withSuccessHandler((v) => {
+      Toastify({
+        text: "Salvando...",
+        duration: 2000,
+        position: "center",
+        gravity: "bottom",
+        style: { background: "#2196F3" },
+      }).showToast();
+
+      const payload = {
+        opFunc: v.opFunc,
+        opDiaria: v.opDiaria,
+        nomeUsuario: v.nomeUsuario,
+        categoria: catVal,
+        banco: bancoVal,
+        data: dataVal,
+        valorTotal: valorTotal,
+        diarista: dados,
+      };
+      console.log(payload);
+
+      fetch(APIFluxo, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      })
+        .then((r) => (r.ok ? r.text() : Promise.reject(r.statusText)))
+        .then((res) => {
+          console.log("Salvo em fluxo:", res);
+          Toastify({
+            text: "Enviado para fluxo de caixa com sucesso..",
+            duration: 2000,
+            position: "center",
+            gravity: "bottom",
+            style: { background: "#00aa25" },
+          }).showToast();
+        })
+        .catch((err) => {
+          console.error(err);
+          Toastify({
+            text: "Erro ao enviar ao Fluxo de Caixa",
+            duration: 2000,
+            position: "center",
+            gravity: "bottom",
+            style: { background: "#bd1717" },
+          }).showToast();
+        });
+
+      fetch(APIFin, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      })
+        .then((r) => (r.ok ? r.text() : Promise.reject(r.statusText)))
+        .then((res) => {
+          console.log("Salvo em financeiro:", res);
+          Toastify({
+            text: "Enviado para financeiro com sucesso..",
+            duration: 2000,
+            position: "center",
+            gravity: "bottom",
+            style: { background: "#00aa25" },
+          }).showToast();
+        })
+        .catch((err) => {
+          console.error(err);
+          Toastify({
+            text: "Erro ao enviar ao Financeiro",
+            duration: 2000,
+            position: "center",
+            gravity: "bottom",
+            style: { background: "#bd1717" },
+          }).showToast();
+        });
+
+      fetch(APIFunc, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      })
+        .then((r) => (r.ok ? r.text() : Promise.reject(r.statusText)))
+        .then((res) => {
+          console.log("Salvo:", res);
+          Toastify({
+            text: "Salvo com sucesso!",
+            duration: 2000,
+            position: "center",
+            gravity: "bottom",
+            style: { background: "#00aa25" },
+          }).showToast();
+          setTimeout(function () {
+            try {
+              google.script.host.close();
+            } catch (e) {}
+          }, 500);
+        })
+        .catch((err) => {
+          console.error(err);
+          Toastify({
+            text: "Erro ao salvar em RH",
+            duration: 2000,
+            position: "center",
+            gravity: "bottom",
+            style: { background: "#bd1717" },
+          }).showToast();
+        });
+    })
     .withFailureHandler((error) => {
       Toastify({
         text: `Erro ao obter OP: ${error.message}`,
@@ -133,94 +240,6 @@ function salvar() {
       throw new Error(`Erro ao obter OP: ${error.message}`);
     })
     .getOp();
-
-  Toastify({
-    text: "Salvando...",
-    duration: 2000,
-    position: "center",
-    gravity: "bottom",
-    style: { background: "#2196F3" },
-  }).showToast();
-
-  const payload = {
-    opFunc: op.opFunc,
-    opDiaria: op.opDiaria,
-    categoria: catVal,
-    banco: bancoVal,
-    data: dataVal,
-    valorTotal: valorTotal,
-    diarista: dados,
-  };
-  console.log(payload);
-
-  fetch(APIFluxo, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  })
-    .then((r) => (r.ok ? r.text() : Promise.reject(r.statusText)))
-    .then((res) => {
-      console.log("Salvo em fluxo:", res);
-    })
-    .catch((err) => {
-      console.error(err);
-      Toastify({
-        text: "Erro ao enviar ao Fluxo de Caixa",
-        duration: 2000,
-        position: "center",
-        gravity: "bottom",
-        style: { background: "#bd1717" },
-      }).showToast();
-    });
-
-  fetch(APIFluxo, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  })
-    .then((r) => (r.ok ? r.text() : Promise.reject(r.statusText)))
-    .then((res) => {
-      console.log("Salvo em fluxo:", res);
-    })
-    .catch((err) => {
-      console.error(err);
-      Toastify({
-        text: "Erro ao enviar ao Financeiro",
-        duration: 2000,
-        position: "center",
-        gravity: "bottom",
-        style: { background: "#bd1717" },
-      }).showToast();
-    });
-
-  fetch(APIFunc, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  })
-    .then((r) => (r.ok ? r.text() : Promise.reject(r.statusText)))
-    .then((res) => {
-      console.log("Salvo:", res);
-      Toastify({
-        text: "Salvo com sucesso!",
-        duration: 2000,
-        position: "center",
-        gravity: "bottom",
-        style: { background: "#00aa25" },
-      }).showToast();
-      setTimeout(function () {
-        try {
-          google.script.host.close();
-        } catch (e) {}
-      }, 500);
-    })
-    .catch((err) => {
-      console.error(err);
-      Toastify({
-        text: "Erro ao salvar em RH",
-        duration: 2000,
-        position: "center",
-        gravity: "bottom",
-        style: { background: "#bd1717" },
-      }).showToast();
-    });
 }
 
 function reloadData() {
