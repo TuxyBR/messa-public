@@ -1,19 +1,194 @@
 var dados = {};
+var dadosOriginais = {};
 var servicosContrato = [];
 var dadosServ = [];
 var i = 0;
 var medicaoAtualAprovada = false;
 const tbody = document.querySelector("tbody");
-
+const APIC = "https://script.google.com/macros/s/AKfycbxHgMbBoCWopmEX0OOZCUgkkWuWC75KutfgpQqBj_wv6i7eAC2mstX3a_7FpYUWLOFEyw/exec"
 const formatarMoeda = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
 });
 
 function SalvarDados() {
-  console.log("SalvarDados clicked");
+  const diff = extrairAlteracoes();
+  if (diff) {
+    console.log("Enviando alterações:", diff);
+    
+    const overlay = document.getElementById("loading-overlay");
+    if (overlay) overlay.style.display = "block";
+
+    Toastify({
+      text: "Salvando...",
+      duration: 2000,
+      style: { background: "#2196F3" }
+    }).showToast();
+
+    fetch(APIC, {
+      method: "POST",
+      body: JSON.stringify(diff)
+    })
+    .then(r => r.ok ? r.text() : Promise.reject(r.statusText))
+    .then(res => {
+      console.log("Salvo:", res);
+      Toastify({
+        text: "Salvo! Atualizando dados...",
+        duration: 2000,
+        style: { background: "#2196F3" }
+      }).showToast();
+      
+      return fetch(APIC);
+    })
+    .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+    .then(json => {
+      console.log("Dados atualizados via API:", json);
+      localStorage.setItem(CACHE_KEY, JSON.stringify(json));
+      processarDados(json);
+      Toastify({
+        text: "Dados salvos e atualizados com sucesso!",
+        duration: 3000,
+        style: { background: "#00aa25" }
+      }).showToast();
+    })
+    .catch(err => {
+      console.error("Erro ao salvar/atualizar:", err);
+      Toastify({
+        text: "Erro ao processar.",
+        duration: 3000,
+        style: { background: "#bd1717" }
+      }).showToast();
+    })
+    .finally(() => {
+      if (overlay) overlay.style.display = "none";
+    });
+  } else {
+    console.log("Nenhuma alteração detectada.");
+    Toastify({
+      text: "Nenhuma alteração para salvar.",
+      duration: 3000,
+      style: { background: "#555" }
+    }).showToast();
+  }
 }
-function toggleAprovacao() {
+
+function atualizarLinhasLocais(payload) {
+  if (!payload || !payload.dados || !payload.dados.contratos) return;
+
+  const deletedRows = [];
+  payload.dados.contratos.forEach(c => {
+    if (c.medicoes) {
+      c.medicoes.forEach(m => {
+        if (m.servicos) {
+          m.servicos.forEach(s => {
+            if (s.tipo === "delete" && s.row) {
+              deletedRows.push(parseInt(s.row));
+            }
+          });
+        }
+      });
+    }
+  });
+
+  if (deletedRows.length === 0) return;
+
+  if (dados.contratos) {
+    dados.contratos.forEach(c => {
+      if (c.medicoes) {
+        c.medicoes.forEach(m => {
+          if (m.servicos) {
+            m.servicos.forEach(s => {
+              if (s.row) {
+                const r = parseInt(s.row);
+                const shift = deletedRows.filter(delRow => delRow < r).length;
+                if (shift > 0) {
+                  s.row = r - shift;
+                }
+              }
+            });
+          }
+        });
+      }
+    });
+  }
+}
+
+function extrairAlteracoes() {
+  if (!dadosOriginais || !dadosOriginais.contratos) return null;
+  const diff = { contratos: [] };
+
+  dados.contratos.forEach(c => {
+    const cOrig = dadosOriginais.contratos.find(x => x.id == c.id);
+    if (!cOrig) return;
+
+    const contratoDiff = { id: c.id, medicoes: [] };
+
+    c.medicoes.forEach(m => {
+      const mOrig = cOrig.medicoes.find(x => x.id == m.id);
+      if (!mOrig) {
+        const mClean = { ...m };
+        delete mClean.new;
+        if (mClean.servicos) {
+          mClean.servicos = mClean.servicos.map(s => ({
+            idServ: s.idServ,
+            quantidade: s.quantidade,
+            tipo: "create"
+          }));
+        }
+        contratoDiff.medicoes.push(mClean); // Nova medição
+      } else {
+        const medicaoDiff = { id: m.id, servicos: [] };
+        let changed = false;
+        const fields = ['data', 'observacoes', 'pago', 'aprovado', 'dataAprovacao', 'dataPagamento', 'autorizador', 'statusAprovacao'];
+        
+        fields.forEach(f => {
+          const v1 = m[f] === undefined || m[f] === null ? "" : m[f];
+          const v2 = mOrig[f] === undefined || mOrig[f] === null ? "" : mOrig[f];
+          if (v1 != v2) {
+            medicaoDiff[f] = m[f];
+            changed = true;
+          }
+        });
+
+        const servicos = m.servicos || [];
+        const servicosOrig = mOrig.servicos || [];
+
+        servicos.forEach(s => {
+          const sOrig = servicosOrig.find(x => x.idServ == s.idServ);
+          if (!sOrig) {
+            medicaoDiff.servicos.push({ idServ: s.idServ, quantidade: s.quantidade, tipo: "create" }); // Novo serviço
+            changed = true;
+          } else {
+            if (s.quantidade != sOrig.quantidade) {
+              medicaoDiff.servicos.push({ idServ: s.idServ, row: sOrig.row, quantidade: s.quantidade, tipo: "update" });
+              changed = true;
+            }
+          }
+        });
+
+        servicosOrig.forEach(sOrig => {
+          if (!servicos.find(x => x.idServ == sOrig.idServ)) {
+            medicaoDiff.servicos.push({ idServ: sOrig.idServ, row: sOrig.row, tipo: "delete" });
+            changed = true;
+          }
+        });
+
+        if (changed) contratoDiff.medicoes.push(medicaoDiff);
+      }
+    });
+
+    if (contratoDiff.medicoes.length > 0) diff.contratos.push(contratoDiff);
+  });
+
+  if (diff.contratos.length > 0) {
+    return {
+      type: "servico_medicao_empreita",
+      dados: diff
+    };
+  }
+  return null;
+}
+function abrirModalAprovacao() {
   const contratoId = (document.getElementById("contrato-id").value || "").split(" - ")[0];
   const medicaoId = document.getElementById("medicao-numero").value;
 
@@ -25,17 +200,61 @@ function toggleAprovacao() {
   const medicao = contrato.medicoes.find((m) => m.id == medicaoId);
   if (!medicao) return;
 
-  medicao.aprovado = !medicao.aprovado;
+  // Preencher campos
+  const statusAprov = medicao.statusAprovacao || (medicao.aprovado ? "Aprovado" : "Pendente");
+  document.getElementById("input-status-aprovacao").value = statusAprov;
+  
+  const statusPag = medicao.pago ? "Pago" : "Pendente";
+  document.getElementById("input-status-pagamento").value = statusPag;
+
+  let dataPag = medicao.dataPagamento || "";
+  if (dataPag && dataPag.includes("T")) dataPag = dataPag.split("T")[0];
+  document.getElementById("input-data-pagamento").value = dataPag;
+
+  document.getElementById("modal-aprovacao").style.display = "flex";
+}
+
+function fecharModalAprovacao() {
+  document.getElementById("modal-aprovacao").style.display = "none";
+}
+
+function salvarAprovacaoPagamento() {
+  const contratoId = (document.getElementById("contrato-id").value || "").split(" - ")[0];
+  const medicaoId = document.getElementById("medicao-numero").value;
+
+  if (!contratoId || !medicaoId || !dados.contratos) return;
+
+  const contrato = dados.contratos.find((c) => c.id == contratoId);
+  if (!contrato) return;
+
+  const medicao = contrato.medicoes.find((m) => m.id == medicaoId);
+  if (!medicao) return;
+
+  const statusAprov = document.getElementById("input-status-aprovacao").value;
+  const dataAprov = document.getElementById("input-data-aprovacao").value;
+  const statusPag = document.getElementById("input-status-pagamento").value;
+  const dataPag = document.getElementById("input-data-pagamento").value;
+
+  medicao.statusAprovacao = statusAprov;
+  medicao.aprovado = (statusAprov === "Aprovado");
+  medicao.dataAprovacao = dataAprov || null;
 
   if (medicao.aprovado) {
-    medicao.autorizador = "Usuário do Sistema";
-    medicao.dataAprovacao = new Date().toISOString().split("T")[0];
+    if (!medicao.autorizador) medicao.autorizador = "Usuário do Sistema";
   } else {
     medicao.autorizador = null;
-    medicao.dataAprovacao = null;
   }
 
+  medicao.pago = (statusPag === "Pago");
+  medicao.dataPagamento = dataPag || null;
+
   carregarMedicao(contratoId, medicaoId);
+  fecharModalAprovacao();
+
+  const diff = extrairAlteracoes();
+  if (diff) {
+    console.log("Alterações após Aprovação/Pagamento:", JSON.stringify(diff, null, 2));
+  }
 }
 function adicionarMedicao() {
   const contratoId = (document.getElementById("contrato-id").value || "").split(" - ")[0];
@@ -48,7 +267,7 @@ function adicionarMedicao() {
 
   if (lastMedicao && !lastMedicao.aprovado) {
     Toastify({
-      text: "A última medição precisa estar aprovada para adicionar uma nova.",
+      text: "A última medição precisa ser aprovada antes de criar uma nova.",
       duration: 3000,
       close: true,
       gravity: "top",
@@ -64,6 +283,7 @@ function adicionarMedicao() {
 
   const novaMedicao = {
     id: newId,
+    new: true,
     data: new Date().toISOString().split("T")[0],
     servicos: [],
     observacoes: "",
@@ -84,9 +304,6 @@ function adicionarMedicao() {
 }
 function imprimir() {
   window.print();
-}
-function atualizarFornecedores() {
-  console.log("atualizarFornecedores clicked");
 }
 
 function gerarNovoIdServico() {
@@ -361,7 +578,8 @@ function calcularAcumulados(contratoId, medicaoId, idServ) {
   let qtdeAcum = 0;
   let percAcum = 0;
 
-  const prevMedicoes = contrato.medicoes.filter((m) => m.id < medicaoId);
+  const targetId = parseInt(medicaoId);
+  const prevMedicoes = contrato.medicoes.filter((m) => parseInt(m.id) < targetId);
   prevMedicoes.forEach((pm) => {
     const servicosEncontrados = pm.servicos.filter(
       (s) => s.idServ == idServ
@@ -668,7 +886,7 @@ function carregarMedicao(contratoId, medicaoId) {
     badgePago.style.backgroundColor = medicao.pago ? "#90ee90" : "#ffcccb";
   }
   if (badgeAprovado) {
-    badgeAprovado.textContent = medicao.aprovado ? "Aprovado" : "Pendente";
+    badgeAprovado.textContent = medicao.statusAprovacao || (medicao.aprovado ? "Aprovado" : "Pendente");
     badgeAprovado.style.backgroundColor = medicao.aprovado
       ? "#90ee90"
       : "#ffcccb";
@@ -834,13 +1052,13 @@ function adicionarSelecionadosSaldo() {
   const checkboxes = document.querySelectorAll(".check-saldo:checked");
   if (checkboxes.length === 0) {
     Toastify({
-      text: "Selecione pelo menos um item.",
+      text: "Selecione ao menos um item.",
       duration: 3000,
       close: true,
       gravity: "top",
       position: "center",
       style: {
-        background: "#bd1717",
+        background: "#921212",
       }
     }).showToast();
     return;
@@ -856,6 +1074,7 @@ function adicionarSelecionadosSaldo() {
     const newId = lastMedicao ? parseInt(lastMedicao.id) + 1 : 1;
     targetMedicao = {
       id: newId,
+      new: true,
       data: new Date().toISOString().split("T")[0],
       servicos: [],
       observacoes: "",
@@ -884,12 +1103,6 @@ function adicionarSelecionadosSaldo() {
             unidade: servicoContrato.unidade,
             qtdeContratada: servicoContrato.qtdeContratada,
             valorUnitario: servicoContrato.valorUnitario,
-            percMedido: 0,
-            percMedidoAcum: 0,
-            qtdeMedidaAcum: 0,
-            percMedidoAcumAtual: 0,
-            valorAcumulado: 0,
-            valorTotal: 0
           });
       }
     }
@@ -906,25 +1119,25 @@ function adicionarSelecionadosSaldo() {
   
   if (isNew) {
     Toastify({
-      text: `Nova medição ${targetMedicao.id} criada com os itens selecionados.`,
+      text: `Medição ${targetMedicao.id} criada com selecionados.`,
       duration: 3000,
       close: true,
       gravity: "top",
       position: "center",
       style: {
-        background: "#00e331",
+        background: "#00aa25",
         color: "#000000",
       }
     }).showToast();
   } else {
     Toastify({
-      text: `Itens adicionados à medição ${targetMedicao.id} (Aberta).`,
+      text: `Itens adicionados à medição ${targetMedicao.id}.`,
       duration: 3000,
       close: true,
       gravity: "top",
       position: "center",
       style: {
-        background: "#00e331",
+        background: "#00aa25",
         color: "#000000",
       }
     }).showToast();
@@ -1074,17 +1287,36 @@ function processarDados(json) {
   
   if (dados.contratos) {
     dados.contratos.forEach(c => {
+      const servicoMap = {};
+      if (c.servicos) {
+        c.servicos.forEach(s => servicoMap[s.idServ] = s);
+      }
       if (c.medicoes) {
         c.medicoes.forEach(m => {
+          m.new = false;
           if (m.servicos) {
             m.servicos.forEach(s => {
-              s.valorTotal = (parseFloat(s.quantidade) || 0) * (parseFloat(s.valorUnitario) || 0);
+              if ((s.qtdeContratada == null || s.qtdeContratada === 0) && servicoMap[s.idServ]) {
+                s.qtdeContratada = servicoMap[s.idServ].qtdeContratada;
+              }
+              if ((s.valorUnitario == null || s.valorUnitario === 0) && servicoMap[s.idServ]) {
+                s.valorUnitario = servicoMap[s.idServ].valorUnitario;
+              }
+
+              const qtd = parseFloat(s.quantidade) || 0;
+              const contratada = parseFloat(s.qtdeContratada) || 0;
+              const valorUnit = parseFloat(s.valorUnitario) || 0;
+
+              s.valorTotal = qtd * valorUnit;
+              s.percMedido = contratada > 0 ? (qtd / contratada) * 100 : 0;
             });
           }
         });
       }
     });
   }
+
+  dadosOriginais = JSON.parse(JSON.stringify(dados));
 
   if (dados.contratos && dados.contratos.length > 0) {
     const cInput = document.getElementById("contrato-id");
@@ -1141,13 +1373,14 @@ const cached = localStorage.getItem(CACHE_KEY);
 if (cached) {
   try {
     console.log("Carregando dados em cache...");
+    console.log(JSON.parse(cached))
     processarDados(JSON.parse(cached));
   } catch (e) {
     console.warn("Erro ao ler cache", e);
   }
 }
 
-fetch("https://script.google.com/macros/s/AKfycbzMbf4NTg2i5kViI6Ys4dN_VyVP09Mb_Rk0iT0HjOoS-3BK4R-4WxI0UYCvmQXDsGCpyQ/exec")
+fetch(APIC)
   .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
   .then(json => {
     console.log("Dados atualizados via API:", json);
