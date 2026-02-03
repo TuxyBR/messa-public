@@ -5,11 +5,31 @@ var dadosServ = [];
 var i = 0;
 var medicaoAtualAprovada = false;
 const tbody = document.querySelector("tbody");
-const APIC = "https://script.google.com/macros/s/AKfycbxHgMbBoCWopmEX0OOZCUgkkWuWC75KutfgpQqBj_wv6i7eAC2mstX3a_7FpYUWLOFEyw/exec"
+const APIC = "https://script.google.com/macros/s/AKfycbyglREV6sTpiOFCQyCw5ewOKOPf2Vzl9byW849aQpdhDOy_f-FcP23Xpu5f1MysticzWg/exec"
 const formatarMoeda = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
 });
+
+const EMAILS_PERMITIDOS = [
+  "rafinhalm.lm@gmail.com",
+  "r.lopes.construtoramessa@gmail.com",
+  "a.lopes.construtoramessa@gmail.com",
+  "gabriel.correa92@gmail.com",
+  "g.messapec@gmail.com",
+  "g.messa.construtoramessa@gmail.com",
+];
+
+function verificarPermissaoUsuario() {
+  if (typeof google !== "undefined" && google.script) {
+    google.script.run.withSuccessHandler(function(email) {
+      if (EMAILS_PERMITIDOS.includes(email)) {
+        const btn = document.getElementById("btn-aprovar");
+        if (btn) btn.style.display = "";
+      }
+    }).obterEmailUsuario(); 
+  }
+}
 
 function SalvarDados() {
   const diff = extrairAlteracoes();
@@ -1394,3 +1414,5 @@ fetch(APIC)
       processarDados(DADOS_ESTATICOS)
     }
   });
+
+verificarPermissaoUsuario();
