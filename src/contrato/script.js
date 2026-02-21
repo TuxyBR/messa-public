@@ -19,7 +19,8 @@ const EMAILS_PERMITIDOS = [
   "g.messapec@gmail.com",
   "g.messa.construtoramessa@gmail.com",
 ];
-
+let userMail = "";
+let userName = "";
 function verificarPermissaoUsuario() {
   if (typeof google !== "undefined" && google.script) {
     google.script.run.withSuccessHandler(function(email) {
@@ -27,7 +28,9 @@ function verificarPermissaoUsuario() {
         const btn = document.getElementById("btn-aprovar");
         if (btn) btn.style.display = "";
       }
-    }).obterEmailUsuario(); 
+      userMail = email;
+      google.script.run.withSuccessHandler(user => userName = user).procuraUsuario(email);
+    }).obterEmailUsuario();
   }
 }
 
@@ -148,6 +151,9 @@ function extrairAlteracoes() {
       if (!mOrig) {
         const mClean = { ...m };
         delete mClean.new;
+        if (!mClean.usuario && userName) {
+          mClean.usuario = userName;
+        }
         if (mClean.servicos) {
           mClean.servicos = mClean.servicos.map(s => ({
             idServ: s.idServ,
@@ -169,6 +175,11 @@ function extrairAlteracoes() {
             changed = true;
           }
         });
+
+        if (!mOrig.usuario && userName) {
+          medicaoDiff.usuario = userName;
+          changed = true;
+        }
 
         const servicos = m.servicos || [];
         const servicosOrig = mOrig.servicos || [];
@@ -260,7 +271,7 @@ function salvarAprovacaoPagamento() {
   medicao.dataAprovacao = dataAprov || null;
 
   if (medicao.aprovado) {
-    if (!medicao.autorizador) medicao.autorizador = "Usuário do Sistema";
+    if (!medicao.autorizador) medicao.autorizador = userName;
   } else {
     medicao.autorizador = null;
   }
