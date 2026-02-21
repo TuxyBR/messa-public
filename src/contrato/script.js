@@ -5,7 +5,7 @@ var dadosServ = [];
 var i = 0;
 var medicaoAtualAprovada = false;
 const tbody = document.querySelector("tbody");
-const APIC = "https://script.google.com/macros/s/AKfycbyglREV6sTpiOFCQyCw5ewOKOPf2Vzl9byW849aQpdhDOy_f-FcP23Xpu5f1MysticzWg/exec"
+const APIC = "https://script.google.com/macros/s/AKfycbzzOfrj0IMvyGQsYXpdwo_XkPnGRAeftgjAaNDdjmE7a8kU6Xf2Gv-DlnNM4_KtG1gifw/exec"
 const formatarMoeda = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
