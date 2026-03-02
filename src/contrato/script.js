@@ -1564,6 +1564,7 @@ function atualizarDadosAPI() {
 function verificarAntesDeAtualizar() {
   const diff = extrairAlteracoes();
   if (diff) {
+    console.log('diff: ', diff)
     document.getElementById("modal-confirmacao-atualizacao").style.display =
       "flex";
   } else {
