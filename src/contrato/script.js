@@ -1508,6 +1508,7 @@ function atualizarBadgeStatus() {
   if (hasChanges) {
     badge.textContent = `Mudanças Pendentes, atualizado em: ${timeStr}`;
     badge.style.backgroundColor = "#ffcccb";
+    console.log(diff)
     localStorage.setItem(CACHE_LOCAL_KEY, JSON.stringify(dados));
   } else {
     badge.textContent = `Dados atualizados em: ${timeStr}`;
