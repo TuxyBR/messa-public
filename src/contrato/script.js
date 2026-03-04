@@ -6,7 +6,7 @@ var i = 0;
 var medicaoAtualAprovada = false;
 const tbody = document.querySelector("tbody");
 const APIC =
-  "https://script.google.com/macros/s/AKfycbwZXNOTaRHGIrahmrCPldz-duzZCMu1Svj4GcoXWdxfW1t9iaWusZcy8LJx0IE5aabAgQ/exec";
+  "https://script.google.com/macros/s/AKfycbwypwReJsJd2WWh0d4YZozqahkHEG_aD2aA0X7blXlJB_FbPGvBo2WPWABrWQhzwyltWg/exec";
 const APIFluxo = "https://script.google.com/macros/s/AKfycbwakyWjmPenEHt_iRRllU9t_3hUB4NgcBSZh-EUnk1OKdRS4hGlPZk7Fs3Wb_ow7JsnSA/exec";
 const formatarMoeda = new Intl.NumberFormat("pt-BR", {
   style: "currency",
