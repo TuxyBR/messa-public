@@ -6,6 +6,33 @@
   box-sizing: border-box;
   font-family: Verdana, Geneva, Tahoma, sans-serif;
   font-size: 14px;
+  transition: transform 0.1s;
+}
+
+.status-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 13px;
+}
+.status-pill.positive {
+  background: #dcedc8;
+  color: #256327;
+}
+.status-pill.warning {
+  background: #ffe0b2;
+  color: #b25600;
+}
+.status-pill.neutral {
+  background: #eceff1;
+  color: #37474f;
+}
+.actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
 }
 
 .marca-dagua {
@@ -52,7 +79,7 @@
   .editavel {
     background-color: transparent !important;
   }
-  
+
   .input {
     border: none !important;
   }
@@ -117,6 +144,16 @@
   align-items: center;
   gap: 8px;
 }
+.badge-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  cursor: pointer;
+  gap: 5px;
+}
+.badge-group:hover {
+  transform: scale(1.05);
+}
 th,
 td {
   height: 23px;
@@ -163,7 +200,9 @@ table {
   border-radius: 8px;
   background-color: #747070;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  transition: background-color 0.3s ease, transform 0.1s ease;
+  transition:
+    background-color 0.3s ease,
+    transform 0.1s ease;
 }
 
 .botao:hover {
@@ -179,6 +218,25 @@ table {
 .botao:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.botao-action {
+  background: #1e88e5;
+}
+.botao-action:hover {
+  background: #1565c0;
+}
+.botao-cancela {
+  background: #cc0f0f;
+}
+.botao-cancela:hover {
+  background: #9e0808;
+}
+.botao-desaprova {
+  background: #e5951e;
+}
+.botao-desaprova:hover {
+  background: #bb7712;
 }
 
 .button-block {
@@ -222,7 +280,6 @@ table {
   width: 120px;
 }
 .badge-title {
-  width: 70px;
   text-align: end;
 }
 .table-field {
@@ -265,7 +322,7 @@ table {
 .dropdown-item:hover {
   background-color: #e0e0e0;
 }
-.tCenter{
+.tCenter {
   text-align: center;
 }
 .input-error {
@@ -288,7 +345,7 @@ table {
   background: white;
   border: 1px solid #999;
   padding: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   z-index: 2000;
   width: 600px;
   max-height: 400px;
@@ -303,7 +360,8 @@ table {
   width: 100%;
   border-collapse: collapse;
 }
-.saldo-table th, .saldo-table td {
+.saldo-table th,
+.saldo-table td {
   border: 1px solid #eee;
   padding: 4px;
   text-align: left;
@@ -391,8 +449,8 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   max-width: 130px;
 }
 .dataBanc {
-  display:flex;
-  flex:1;
+  display: flex;
+  flex: 1;
   justify-content: center;
   align-items: center;
 }
