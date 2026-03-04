@@ -50,27 +50,54 @@ function verificarPermissaoUsuario() {
 }
 
 let diffPendente = null;
+let pagamentosQueue = [];
+let pagamentosExtras = []; // Armazena { contratoId, medicaoId, banco, nf }
 
 function SalvarDados() {
   const diff = extrairAlteracoes();
   if (diff) {
+    diffPendente = diff;
+    pagamentosQueue = [];
+    pagamentosExtras = [];
+
     // Verificar se existe algum pagamento sendo aprovado (pago === true)
-    let temPagamento = false;
     if (diff.dados && diff.dados.contratos) {
       diff.dados.contratos.forEach(c => {
         if (c.medicoes) {
           c.medicoes.forEach(m => {
-            if (m.pago === true) temPagamento = true;
+            if (m.pago === true) {
+              // Buscar nome do fornecedor para exibicao
+              const cFull = dados.contratos.find(x => x.id == c.id);
+              const nomeFornecedor = cFull && cFull.fornecedor ? cFull.fornecedor.name : "Desconhecido";
+              
+              let total = 0;
+              const mFull = cFull ? cFull.medicoes.find((x) => x.id == m.id) : null;
+              if (mFull && mFull.servicos) {
+                total = mFull.servicos.reduce(
+                  (acc, s) => acc + (parseFloat(s.valorTotal) || 0),
+                  0
+                );
+              }
+
+              pagamentosQueue.push({
+                contratoId: c.id,
+                medicaoId: m.id,
+                nomeFornecedor: nomeFornecedor,
+                valorTotal: formatarMoeda.format(total),
+              });
+              console.log(pagamentosQueue)
+            }
           });
         }
       });
     }
-    console.log('diff: ', diff)
-    if (temPagamento) {
-      diffPendente = diff;
-      abrirModalBanco();
+
+    console.log('diff: ', diff);
+    
+    if (pagamentosQueue.length > 0) {
+      processarProximoPagamento();
     } else {
-      enviarDadosParaAPI(diff, null);
+      enviarDadosParaAPI(diff, []);
     }
   } else {
     console.log("Nenhuma alteração detectada.");
@@ -82,7 +109,7 @@ function SalvarDados() {
   }
 }
 
-function enviarDadosParaAPI(diff, bancoSelecionado) {
+function enviarDadosParaAPI(diff, listaExtras) {
   console.log("Enviando alterações:", diff);
 
   // Preparar payloads para API de Fluxo se houver pagamento aprovado
@@ -100,13 +127,30 @@ function enviarDadosParaAPI(diff, bancoSelecionado) {
                   (acc, s) => acc + (parseFloat(s.valorTotal) || 0),
                   0
                 );
+
+                // Buscar dados extras (banco e NF) capturados no modal
+                const extraData = listaExtras.find(e => e.contratoId == cFull.id && e.medicaoId == mFull.id);
+                const bancoFinal = extraData ? extraData.banco : (cFull.fornecedor ? cFull.fornecedor.banco : "");
+                const nfFinal = extraData ? extraData.nf : "";
+                const dataFinal = extraData ? extraData.data : mFull.dataPagamento;
+
+                // Adicionar NF ao objeto de diferenca para salvar na API de Contratos
+                if (nfFinal) mDiff.nf = nfFinal;
+
+                const descricaoMontada = [];
+
+                if (cFull.id) descricaoMontada.push(`Contrato: ${cFull.id}`)
+                if (mFull.id) descricaoMontada.push(`Medição: ${mFull.id}`)
+                if (nfFinal) descricaoMontada.push(`NF: ${nfFinal}`)
+
                 pagamentosFluxo.push({
-                  data: mFull.dataPagamento,
+                  data: dataFinal,
                   categoria: "MO Empreitada",
-                  banco: bancoSelecionado || (cFull.fornecedor ? cFull.fornecedor.banco : ""),
+                  banco: bancoFinal,
                   valorTotal: total,
-                  descricao: `Numero do contrato: ${cFull.id} - Medição: ${mFull.id}`,
+                  descricao: descricaoMontada.join(" - "),
                   fornecedor: `${cFull.fornecedor.name || "Desconhecido"}`,
+                  notaFiscal: nfFinal
                 });
               }
             }
@@ -414,14 +458,47 @@ function clickBadgePagamento() {
     return;
   }
 
-  // Regra: Nao permitir remover o pagamento
-  if (medicao.pago) {
-    Toastify({ text: "O pagamento já foi registrado e não pode ser removido.", duration: 3000, style: { background: "#e5951e" } }).showToast();
-    return;
+  // Verificar se ja estava pago originalmente (persistido)
+  let estavaPagoOriginalmente = false;
+  if (dadosOriginais && dadosOriginais.contratos) {
+    const cOrig = dadosOriginais.contratos.find((c) => c.id == contratoId);
+    if (cOrig && cOrig.medicoes) {
+      const mOrig = cOrig.medicoes.find((m) => m.id == medicaoId);
+      if (mOrig && mOrig.pago) {
+        estavaPagoOriginalmente = true;
+      }
+    }
   }
 
-  // Abrir modal especifico de pagamento
-  document.getElementById("modal-acao-pagamento").style.display = "flex";
+  const modal = document.getElementById("modal-acao-pagamento");
+  const msg = modal.querySelector("p");
+  const btnConfirm = modal.querySelectorAll(".actions button")[1];
+
+  if (medicao.pago) {
+    if (estavaPagoOriginalmente) {
+      Toastify({ text: "O pagamento já foi registrado e não pode ser removido.", duration: 3000, style: { background: "#e5951e" } }).showToast();
+      return;
+    } else {
+      // Pago localmente, permitir remover
+      msg.textContent = "O pagamento ainda nao foi salvo. Deseja remover o status de Pago?";
+      btnConfirm.textContent = "Remover Pagamento";
+      btnConfirm.style.background = "#cc0f0f";
+      btnConfirm.onclick = function() {
+        document.getElementById("modal-acao-pagamento").style.display = "none";
+        executarAcaoMedicao("remover_pagamento");
+      };
+      modal.style.display = "flex";
+      return;
+    }
+  }
+
+  // Estado padrao (Nao pago)
+  msg.textContent = "Deseja confirmar o pagamento desta medição?";
+  btnConfirm.textContent = "Confirmar Pagamento";
+  btnConfirm.style.background = "#098044";
+  btnConfirm.onclick = confirmarAcaoPagamento;
+
+  modal.style.display = "flex";
 }
 
 function confirmarAcaoPagamento() {
@@ -454,7 +531,7 @@ function clickBadgeAprovacao() {
 
   if (medicao.aprovado) {
     // Se ja esta aprovado, permitir voltar para Pendente ou Cancelar
-    document.getElementById("msg-acao-aprovacao").textContent = "A medição está APROVADA. O que deseja fazer?";
+    document.getElementById("msg-acao-aprovacao").textContent = "A medição está APROVADA. Deseja mudar status?";
 
     const btnPendente = document.createElement("button");
     btnPendente.className = "botao botao-desaprova";
@@ -527,6 +604,9 @@ function executarAcaoMedicao(action) {
   } else if (action === "pagar") {
     medicao.pago = true;
     medicao.dataPagamento = new Date().toISOString().split("T")[0];
+  } else if (action === "remover_pagamento") {
+    medicao.pago = false;
+    medicao.dataPagamento = null;
   } else if (action === "cancelar") {
     medicao.statusAprovacao = "Cancelado";
     medicao.aprovado = false;
@@ -553,27 +633,64 @@ function confirmarSalvamento() {
   SalvarDados();
 }
 
-function abrirModalBanco() {
+function processarProximoPagamento() {
+  if (pagamentosQueue.length === 0) {
+    // Fila acabou, enviar tudo
+    document.getElementById("modal-selecao-banco").style.display = "none";
+    enviarDadosParaAPI(diffPendente, pagamentosExtras);
+    return;
+  }
+
+  const item = pagamentosQueue[0]; // Pega o primeiro sem remover ainda (remove no confirmar)
+  
+  // Atualizar UI do Modal
+  const infoDiv = document.getElementById("info-pagamento-atual");
+  infoDiv.innerHTML = `
+  <div style="display:flex; justify-content: flex-start; gap: 20px"><div><b>Medição:</b> ${item.medicaoId}</div> <div><b>Total:</b> ${item.valorTotal} </div></div>
+    <div><b>Contrato:</b> ${item.contratoId} - ${item.nomeFornecedor}</div>
+    <div style="margin-top:5px; font-size:11px; color:#777;">Medições na fila: ${pagamentosQueue.length}</div>
+  `;
+
+  document.getElementById("input-data-pagamento-selecao").value = new Date().toISOString().split("T")[0];
   document.getElementById("input-banco-selecao").value = "";
+  document.getElementById("input-nf-selecao").value = "";
+  
   document.getElementById("modal-selecao-banco").style.display = "flex";
-  // Focar no input apos abrir
   setTimeout(() => document.getElementById("input-banco-selecao").focus(), 100);
 }
 
-function fecharModalBanco() {
+function cancelarFluxoPagamento() {
   document.getElementById("modal-selecao-banco").style.display = "none";
   diffPendente = null;
+  pagamentosQueue = [];
+  pagamentosExtras = [];
+  Toastify({ text: "Salvamento cancelado.", duration: 3000, style: { background: "#bd1717" } }).showToast();
 }
 
-function confirmarBancoESalvar() {
+function confirmarDetalhePagamento() {
   const banco = document.getElementById("input-banco-selecao").value;
+  const nf = document.getElementById("input-nf-selecao").value;
+  const dataPag = document.getElementById("input-data-pagamento-selecao").value;
+  
   if (!banco) {
     Toastify({ text: "Selecione um banco.", duration: 3000, style: { background: "#bd1717" } }).showToast();
     return;
   }
-  document.getElementById("modal-selecao-banco").style.display = "none";
-  enviarDadosParaAPI(diffPendente, banco);
-  diffPendente = null;
+  if (!dataPag) {
+    Toastify({ text: "Selecione a data do pagamento.", duration: 3000, style: { background: "#bd1717" } }).showToast();
+    return;
+  }
+
+  const item = pagamentosQueue.shift(); // Remove da fila
+  pagamentosExtras.push({
+    contratoId: item.contratoId,
+    medicaoId: item.medicaoId,
+    banco: banco,
+    nf: nf,
+    data: dataPag
+  });
+
+  processarProximoPagamento();
 }
 
 function filtrarBancos(input) {
@@ -583,25 +700,35 @@ function filtrarBancos(input) {
 
   const bancos = dados.bancos || []; // Pega de dados.bancos conforme solicitado
 
-  if (bancos.length === 0 && list.children.length === 0) {
-    list.style.display = "none";
-    return;
-  }
+  const matches = [];
+  const others = [];
 
-  const filtrados = bancos.filter(b => b.toLowerCase().includes(term));
+  bancos.forEach(b => {
+    if (term && b.toLowerCase().includes(term)) {
+      matches.push(b);
+    } else {
+      others.push(b);
+    }
+  });
 
-  filtrados.forEach(b => {
+  const renderItem = (b, highlight) => {
     const div = document.createElement("div");
     div.className = "dropdown-item";
     div.textContent = b;
+    if (highlight) {
+      div.style.backgroundColor = "rgba(33, 150, 243, 0.1)";
+    }
     div.onmousedown = function () {
       input.value = b;
       list.style.display = "none";
     };
     list.appendChild(div);
-  });
+  };
 
-  list.style.display = filtrados.length > 0 ? "block" : "none";
+  matches.forEach(b => renderItem(b, true));
+  others.forEach(b => renderItem(b, false));
+
+  list.style.display = (matches.length + others.length) > 0 ? "block" : "none";
 }
 
 function adicionarMedicao() {
@@ -615,7 +742,7 @@ function adicionarMedicao() {
 
   const lastMedicao = contrato.medicoes[contrato.medicoes.length - 1];
 
-  if (lastMedicao && !lastMedicao.aprovado) {
+  if (lastMedicao && !lastMedicao.aprovado && lastMedicao.statusAprovacao !== "Cancelado") {
     Toastify({
       text: "A última medição precisa ser aprovada antes de criar uma nova.",
       duration: 3000,
@@ -689,7 +816,7 @@ function adicionarLinhaServico(dados) {
   <tr data-id-serv="${idServ}">
     <td colspan="2">
       <div class="dropdown-wrapper">
-        <input type="text" class="${editavelClass} side-padding table-field input-descricao" value="${textoConcatenado}" oninput="filtrarServicos(this); atualizarDetalhesServico(this)" onfocus="filtrarServicos(this)" onblur="setTimeout(() => this.nextElementSibling.style.display = 'none', 200)" ${disabledAttr}>
+        <input type="text" class="${editavelClass} side-padding table-field input-descricao" value="${textoConcatenado}" oninput="filtrarServicos(this); atualizarDetalhesServico(this)" onfocus="filtrarServicos(this); this.select()" onblur="setTimeout(() => this.nextElementSibling.style.display = 'none', 200)" ${disabledAttr}>
         <div class="dropdown-list"></div>
       </div>
     </td>
@@ -720,6 +847,7 @@ function filtrarServicos(input) {
   const wrapper = input.parentElement;
   const list = wrapper.querySelector(".dropdown-list");
   const term = input.value.toLowerCase();
+  list.innerHTML = "";
 
   const row = input.closest("tr");
   const currentRowIndex = row ? row.sectionRowIndex : -1;
@@ -731,79 +859,84 @@ function filtrarServicos(input) {
     }
   });
 
-  list.innerHTML = "";
-  const filtered = servicosContrato.filter((s) => !usedIds.has(s.idServ));
+  // Filtra apenas os que nao foram usados ainda
+  const available = servicosContrato.filter((s) => !usedIds.has(s.idServ));
 
-  if (filtered.length === 0) {
+  if (available.length === 0) {
     list.style.display = "none";
     return;
   }
 
-  filtered.forEach((s) => {
+  const matches = [];
+  const others = [];
+
+  available.forEach((s) => {
+    const text = `${s.idServ} - ${s.descricaoServ}`;
+    if (term && text.toLowerCase().includes(term)) {
+      matches.push(s);
+    } else {
+      others.push(s);
+    }
+  });
+
+  const renderItem = (s, highlight) => {
     const div = document.createElement("div");
     div.className = "dropdown-item";
     div.textContent = `${s.idServ} - ${s.descricaoServ}`;
+    if (highlight) {
+      div.style.backgroundColor = "rgba(33, 150, 243, 0.1)";
+    }
     div.onmousedown = function () {
       input.value = div.textContent;
       atualizarDetalhesServico(input);
       list.style.display = "none";
     };
     list.appendChild(div);
-  });
+  };
+
+  matches.forEach(s => renderItem(s, true));
+  others.forEach(s => renderItem(s, false));
 
   list.style.display = "block";
-
-  Array.from(list.children).forEach(
-    (child) => (child.style.backgroundColor = ""),
-  );
-
-  if (term) {
-    const match = Array.from(list.children).find((item) =>
-      item.textContent.toLowerCase().includes(term),
-    );
-    if (match) {
-      match.scrollIntoView({ block: "nearest" });
-      match.style.backgroundColor = "#d0d0d0";
-    }
-  }
 }
 
 function filtrarContratos(input) {
   const list = input.nextElementSibling;
   const term = input.value.toLowerCase();
+  list.innerHTML = "";
 
   const medList = document.getElementById("medicao-numero").nextElementSibling;
   if (medList) medList.innerHTML = "";
 
-  if (!dados.contratos) return;
+  const matches = [];
+  const others = [];
 
-  if (list.children.length === 0) {
-    dados.contratos.forEach((c) => {
-      const div = document.createElement("div");
-      div.className = "dropdown-item";
-      div.textContent = `${c.id} - ${c.fornecedor ? c.fornecedor.name : ""}`;
-      div.onmousedown = () => {
-        selecionarContrato(c);
-      };
-      list.appendChild(div);
-    });
-  }
+  dados.contratos.forEach((c) => {
+    const text = `${c.id} - ${c.fornecedor ? c.fornecedor.name : ""}`;
+    if (term && text.toLowerCase().includes(term)) {
+      matches.push(c);
+    } else {
+      others.push(c);
+    }
+  });
+
+  const renderItem = (c, highlight) => {
+    const div = document.createElement("div");
+    div.className = "dropdown-item";
+    div.textContent = `${c.id} - ${c.fornecedor ? c.fornecedor.name : ""}`;
+    if (highlight) {
+      div.style.backgroundColor = "rgba(33, 150, 243, 0.1)";
+    }
+    div.onmousedown = () => {
+      selecionarContrato(c);
+    };
+    list.appendChild(div);
+  };
+
+  matches.forEach(c => renderItem(c, true));
+  others.forEach(c => renderItem(c, false));
 
   list.style.display = "block";
-
-  Array.from(list.children).forEach(
-    (child) => (child.style.backgroundColor = ""),
-  );
-
-  if (term) {
-    const match = Array.from(list.children).find((item) =>
-      item.textContent.toLowerCase().includes(term),
-    );
-    if (match) {
-      match.scrollIntoView({ block: "nearest" });
-      match.style.backgroundColor = "#d0d0d0";
-    }
-  }
 }
 
 function selecionarContrato(c) {
@@ -864,36 +997,39 @@ function filtrarMedicoes(input) {
 
   const list = input.nextElementSibling;
   const term = input.value.toLowerCase();
+  list.innerHTML = "";
 
-  if (list.children.length === 0) {
-    contrato.medicoes.forEach((m) => {
-      const div = document.createElement("div");
-      div.className = "dropdown-item";
-      div.textContent = m.id;
-      div.onmousedown = () => {
-        input.value = m.id;
-        carregarMedicao(contrato.id, m.id);
-        list.style.display = "none";
-      };
-      list.appendChild(div);
-    });
-  }
+  const matches = [];
+  const others = [];
+
+  contrato.medicoes.forEach((m) => {
+    const text = String(m.id);
+    if (term && text.toLowerCase().includes(term)) {
+      matches.push(m);
+    } else {
+      others.push(m);
+    }
+  });
+
+  const renderItem = (m, highlight) => {
+    const div = document.createElement("div");
+    div.className = "dropdown-item";
+    div.textContent = m.id;
+    if (highlight) {
+      div.style.backgroundColor = "rgba(33, 150, 243, 0.1)";
+    }
+    div.onmousedown = () => {
+      input.value = m.id;
+      carregarMedicao(contrato.id, m.id);
+      list.style.display = "none";
+    };
+    list.appendChild(div);
+  };
+
+  matches.forEach(m => renderItem(m, true));
+  others.forEach(m => renderItem(m, false));
 
   list.style.display = "block";
-
-  Array.from(list.children).forEach(
-    (child) => (child.style.backgroundColor = ""),
-  );
-
-  if (term) {
-    const match = Array.from(list.children).find((item) =>
-      item.textContent.toLowerCase().includes(term),
-    );
-    if (match) {
-      match.scrollIntoView({ block: "nearest" });
-      match.style.backgroundColor = "#d0d0d0";
-    }
-  }
 }
 
 function selecionarMedicaoPorInput(input) {
@@ -1165,7 +1301,7 @@ function carregarMedicao(contratoId, medicaoId) {
     JSON.stringify({ contratoId, medicaoId }),
   );
 
-  medicaoAtualAprovada = !!medicao.aprovado;
+  medicaoAtualAprovada = !!medicao.aprovado || medicao.statusAprovacao === "Cancelado";
 
   const table = document.getElementById("contratos");
   if (medicaoAtualAprovada) {
@@ -1262,7 +1398,7 @@ function carregarMedicao(contratoId, medicaoId) {
   const btnNova = document.getElementById("btn-nova-medicao");
   if (btnNova) {
     const lastMedicao = contrato.medicoes[contrato.medicoes.length - 1];
-    if (lastMedicao && !lastMedicao.aprovado) {
+    if (lastMedicao && !lastMedicao.aprovado && lastMedicao.statusAprovacao !== "Cancelado") {
       btnNova.style.display = "none";
     } else {
       btnNova.style.display = "";
