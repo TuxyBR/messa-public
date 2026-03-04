@@ -65,7 +65,7 @@ function SalvarDados() {
         }
       });
     }
-
+    console.log('diff: ', diff)
     if (temPagamento) {
       diffPendente = diff;
       abrirModalBanco();
@@ -1784,6 +1784,7 @@ function atualizarBadgeStatus() {
     }
   }
 
+  console.log("Mudancas registradas:", diff)
   if (hasChanges) {
     badge.textContent = `Mudanças Pendentes, atualizado em: ${timeStr}`;
     badge.style.backgroundColor = "#ffcccb";
@@ -1842,6 +1843,7 @@ function atualizarDadosAPI() {
 function verificarAntesDeAtualizar() {
   const diff = extrairAlteracoes();
   if (diff) {
+    console.log('diff: ', diff)
     document.getElementById("modal-confirmacao-atualizacao").style.display =
       "flex";
   } else {
