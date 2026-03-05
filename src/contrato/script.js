@@ -1384,7 +1384,16 @@ function carregarMedicao(contratoId, medicaoId) {
   const badgeAprovado = document.getElementById("badge-aprovado");
 
   if (badgePago) {
-    badgePago.textContent = medicao.pago ? "Pago" : "Pendente";
+    let textoPago = medicao.pago ? "Pago" : "Pendente";
+    if (medicao.pago && medicao.dataPagamento) {
+      let d = String(medicao.dataPagamento).split("T")[0];
+      if (d.includes("-")) {
+        const [ano, mes, dia] = d.split("-");
+        d = `${dia}/${mes}/${ano}`;
+      }
+      textoPago = `Pago: ${d}`;
+    }
+    badgePago.textContent = textoPago;
     badgePago.style.backgroundColor = medicao.pago ? "#90ee90" : "#ffcccb";
   }
   if (badgeAprovado) {
