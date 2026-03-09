@@ -27,10 +27,10 @@ let usuarioPermitido = false;
 
 function verificarPermissaoUsuario() {
   //temporario para testes
-  const btn = document.getElementById("btn-aprovar");
-  if (btn) btn.style.display = "";
-  usuarioPermitido = true;
-  return
+  // const btn = document.getElementById("btn-aprovar");
+  // if (btn) btn.style.display = "";
+  // usuarioPermitido = true;
+  // return
   //temporario para testes
   if (typeof google !== "undefined" && google.script) {
     google.script.run
