@@ -38,6 +38,7 @@ function verificarPermissaoUsuario() {
         if (EMAILS_PERMITIDOS.includes(email)) {
           const btn = document.getElementById("btn-aprovar");
           if (btn) btn.style.display = "";
+          console.log(`usuario logado: ${email}`)
           usuarioPermitido = true;
         }
         userMail = email;
