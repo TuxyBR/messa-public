@@ -748,6 +748,16 @@ function obterContratoIdSelecionado() {
   );
 }
 
+function abrirDropdown(list) {
+  if (!list) return;
+  list.classList.add("is-open");
+}
+
+function fecharDropdown(list) {
+  if (!list) return;
+  list.classList.remove("is-open");
+}
+
 function formatarContratoCompacto(contrato) {
   return formatarContratoVisual(contrato.id);
 }
@@ -790,7 +800,7 @@ function filtrarBancos(input) {
     }
     div.onmousedown = function () {
       input.value = b;
-      list.style.display = "none";
+      fecharDropdown(list);
     };
     list.appendChild(div);
   };
@@ -798,7 +808,11 @@ function filtrarBancos(input) {
   matches.forEach(b => renderItem(b, true));
   others.forEach(b => renderItem(b, false));
 
-  list.style.display = (matches.length + others.length) > 0 ? "block" : "none";
+  if ((matches.length + others.length) > 0) {
+    abrirDropdown(list);
+  } else {
+    fecharDropdown(list);
+  }
 }
 
 function adicionarMedicao() {
@@ -884,7 +898,7 @@ function adicionarLinhaServico(dados) {
   <tr data-id-serv="${idServ}">
     <td colspan="2">
       <div class="dropdown-wrapper">
-        <input type="text" class="${editavelClass} side-padding table-field input-descricao" value="${textoConcatenado}" oninput="filtrarServicos(this); atualizarDetalhesServico(this)" onfocus="filtrarServicos(this); this.select()" onblur="setTimeout(() => this.nextElementSibling.style.display = 'none', 200)" ${disabledAttr}>
+        <input type="text" class="${editavelClass} side-padding table-field input-descricao" value="${textoConcatenado}" oninput="filtrarServicos(this); atualizarDetalhesServico(this)" onfocus="filtrarServicos(this); this.select()" onblur="setTimeout(() => fecharDropdown(this.nextElementSibling), 200)" ${disabledAttr}>
         <div class="dropdown-list"></div>
       </div>
     </td>
@@ -931,7 +945,7 @@ function filtrarServicos(input) {
   const available = servicosContrato.filter((s) => !usedIds.has(s.idServ));
 
   if (available.length === 0) {
-    list.style.display = "none";
+    fecharDropdown(list);
     return;
   }
 
@@ -957,7 +971,7 @@ function filtrarServicos(input) {
     div.onmousedown = function () {
       input.value = div.textContent;
       atualizarDetalhesServico(input);
-      list.style.display = "none";
+      fecharDropdown(list);
     };
     list.appendChild(div);
   };
@@ -965,7 +979,7 @@ function filtrarServicos(input) {
   matches.forEach(s => renderItem(s, true));
   others.forEach(s => renderItem(s, false));
 
-  list.style.display = "block";
+  abrirDropdown(list);
 }
 
 function filtrarContratos(input) {
@@ -1004,7 +1018,7 @@ function filtrarContratos(input) {
   matches.forEach(c => renderItem(c, true));
   others.forEach(c => renderItem(c, false));
 
-  list.style.display = "block";
+  abrirDropdown(list);
 }
 
 function selecionarContrato(c) {
@@ -1040,7 +1054,7 @@ function selecionarContrato(c) {
   }
 
   const list = input.nextElementSibling;
-  if (list) list.style.display = "none";
+  if (list) fecharDropdown(list);
 }
 
 function selecionarContratoPorInput(input) {
@@ -1087,7 +1101,7 @@ function filtrarMedicoes(input) {
     div.onmousedown = () => {
       input.value = m.id;
       carregarMedicao(contrato.id, m.id);
-      list.style.display = "none";
+      fecharDropdown(list);
     };
     list.appendChild(div);
   };
@@ -1095,7 +1109,7 @@ function filtrarMedicoes(input) {
   matches.forEach(m => renderItem(m, true));
   others.forEach(m => renderItem(m, false));
 
-  list.style.display = "block";
+  abrirDropdown(list);
 }
 
 function selecionarMedicaoPorInput(input) {
@@ -1104,7 +1118,7 @@ function selecionarMedicaoPorInput(input) {
   if (contratoId && medicaoId) {
     carregarMedicao(contratoId, medicaoId);
     const list = input.nextElementSibling;
-    if (list) list.style.display = "none";
+    if (list) fecharDropdown(list);
   }
 }
 

@@ -304,12 +304,28 @@ table {
   left: 0;
   width: 100%;
   background: white;
-  border: 1px solid #ccc;
-  max-height: 200px;
-  overflow-y: auto;
+  border: 1px solid transparent;
+  max-height: 0;
+  overflow: hidden;
   z-index: 1000;
-  display: none;
+  visibility: hidden;
+  pointer-events: none;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition:
+    max-height 0.2s ease,
+    border-color 0.2s ease,
+    visibility 0s linear 0.2s;
+}
+.dropdown-list.is-open {
+  max-height: 50vh;
+  overflow-y: auto;
+  border-color: #ccc;
+  pointer-events: auto;
+  visibility: visible;
+  transition:
+    max-height 0.2s ease,
+    border-color 0.2s ease,
+    visibility 0s;
 }
 .dropdown-item {
   padding: 8px;
