@@ -35,10 +35,10 @@ function verificarPermissaoUsuario() {
   if (typeof google !== "undefined" && google.script) {
     google.script.run
       .withSuccessHandler(function (email) {
+        console.log(`usuario logado: ${email}`)
         if (EMAILS_PERMITIDOS.includes(email)) {
           const btn = document.getElementById("btn-aprovar");
           if (btn) btn.style.display = "";
-          console.log(`usuario logado: ${email}`)
           usuarioPermitido = true;
         }
         userMail = email;
@@ -53,13 +53,6 @@ function verificarPermissaoUsuario() {
 let diffPendente = null;
 let pagamentosQueue = [];
 let pagamentosExtras = []; // Armazena { contratoId, medicaoId, banco, nf }
-
-function enviarPostSemPreflight(url, payload) {
-  return fetch(url, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-}
 
 function SalvarDados() {
   const diff = extrairAlteracoes();
@@ -177,16 +170,20 @@ function enviarDadosParaAPI(diff, listaExtras) {
     style: { background: "#2196F3" },
   }).showToast();
 
-  enviarPostSemPreflight(APIC, diff)
+  fetch(APIC, {
+    method: "POST",
+    body: JSON.stringify(diff),
+  })
     .then((r) => (r.ok ? r.text() : Promise.reject(r.statusText)))
     .then((res) => {
       console.log("Salvo:", res);
 
       if (pagamentosFluxo.length > 0) {
         pagamentosFluxo.forEach((p) => {
-          enviarPostSemPreflight(APIFluxo, p).catch((e) =>
-            console.error("Erro fluxo:", e),
-          );
+          fetch(APIFluxo, {
+            method: "POST",
+            body: JSON.stringify(p),
+          }).catch((e) => console.error("Erro fluxo:", e));
         });
       }
 
@@ -372,9 +369,7 @@ function extrairAlteracoes() {
   return null;
 }
 function abrirModalAprovacao() {
-  const contratoId = (document.getElementById("contrato-id").value || "").split(
-    " - ",
-  )[0];
+  const contratoId = obterContratoIdSelecionado();
   const medicaoId = document.getElementById("medicao-numero").value;
 
   if (!contratoId || !medicaoId || !dados.contratos) return;
@@ -448,7 +443,7 @@ function clickBadgePagamento() {
     return;
   }
 
-  const contratoId = (document.getElementById("contrato-id").value || "").split(" - ")[0];
+  const contratoId = obterContratoIdSelecionado();
   const medicaoId = document.getElementById("medicao-numero").value;
   if (!contratoId || !medicaoId || !dados.contratos) return;
   const contrato = dados.contratos.find((c) => c.id == contratoId);
@@ -516,7 +511,7 @@ function clickBadgeAprovacao() {
     return;
   }
 
-  const contratoId = (document.getElementById("contrato-id").value || "").split(" - ")[0];
+  const contratoId = obterContratoIdSelecionado();
   const medicaoId = document.getElementById("medicao-numero").value;
   if (!contratoId || !medicaoId || !dados.contratos) return;
   const contrato = dados.contratos.find((c) => c.id == contratoId);
@@ -587,7 +582,7 @@ function confirmarAcaoAprovacao(acao) {
 }
 
 function executarAcaoMedicao(action) {
-  const contratoId = (document.getElementById("contrato-id").value || "").split(" - ")[0];
+  const contratoId = obterContratoIdSelecionado();
   const medicaoId = document.getElementById("medicao-numero").value;
   if (!contratoId || !medicaoId || !dados.contratos) return;
   const contrato = dados.contratos.find((c) => c.id == contratoId);
@@ -697,6 +692,77 @@ function confirmarDetalhePagamento() {
   processarProximoPagamento();
 }
 
+function obterNomeFantasiaFornecedor(contrato) {
+  return contrato?.fornecedor?.name || "";
+}
+
+function obterRazaoSocialFornecedor(contrato) {
+  return (
+    contrato?.fornecedor?.razaoSocial ||
+    contrato?.fornecedor?.razao ||
+    contrato?.fornecedor?.nomeRazao ||
+    ""
+  );
+}
+
+function formatarObraVisual(valor) {
+  const texto = String(valor ?? "").trim();
+  if (!texto) return "";
+
+  const match = texto.match(/^MCG\s*0*(\d+)$/i);
+  if (match) {
+    return `MCG${match[1].padStart(3, "0")}`;
+  }
+
+  if (/^\d+$/.test(texto)) {
+    return `MCG${texto.padStart(3, "0")}`;
+  }
+
+  return texto;
+}
+
+function formatarContratoVisual(valor) {
+  const texto = String(valor ?? "").trim();
+  if (!texto) return "";
+
+  const numeros = texto.replace(/\D/g, "");
+  if (!numeros) return texto;
+
+  return `C${numeros.padStart(6, "0")}`;
+}
+
+function extrairContratoIdVisual(valor) {
+  const texto = String(valor ?? "").trim();
+  if (!texto) return "";
+
+  const prefixo = texto.split(" - ")[0];
+  const numeros = prefixo.replace(/\D/g, "");
+  if (!numeros) return prefixo;
+
+  return String(parseInt(numeros, 10));
+}
+
+function obterContratoIdSelecionado() {
+  return extrairContratoIdVisual(
+    document.getElementById("contrato-id")?.value || "",
+  );
+}
+
+function formatarContratoCompacto(contrato) {
+  return formatarContratoVisual(contrato.id);
+}
+
+function formatarContratoCompleto(contrato) {
+  const partes = [
+    formatarContratoVisual(contrato.id),
+    formatarObraVisual(contrato.obra),
+    obterNomeFantasiaFornecedor(contrato),
+    obterRazaoSocialFornecedor(contrato),
+  ].filter(Boolean);
+
+  return partes.join(" - ");
+}
+
 function filtrarBancos(input) {
   const list = input.nextElementSibling;
   const term = input.value.toLowerCase();
@@ -736,9 +802,7 @@ function filtrarBancos(input) {
 }
 
 function adicionarMedicao() {
-  const contratoId = (document.getElementById("contrato-id").value || "").split(
-    " - ",
-  )[0];
+  const contratoId = obterContratoIdSelecionado();
   if (!contratoId || !dados.contratos) return;
 
   const contrato = dados.contratos.find((c) => c.id == contratoId);
@@ -916,7 +980,7 @@ function filtrarContratos(input) {
   const others = [];
 
   dados.contratos.forEach((c) => {
-    const text = `${c.id} - ${c.fornecedor ? c.fornecedor.name : ""}`;
+    const text = `${formatarContratoCompacto(c)} ${formatarContratoCompleto(c)}`;
     if (term && text.toLowerCase().includes(term)) {
       matches.push(c);
     } else {
@@ -927,7 +991,7 @@ function filtrarContratos(input) {
   const renderItem = (c, highlight) => {
     const div = document.createElement("div");
     div.className = "dropdown-item";
-    div.textContent = `${c.id} - ${c.fornecedor ? c.fornecedor.name : ""}`;
+    div.textContent = formatarContratoCompleto(c);
     if (highlight) {
       div.style.backgroundColor = "rgba(33, 150, 243, 0.1)";
     }
@@ -945,10 +1009,10 @@ function filtrarContratos(input) {
 
 function selecionarContrato(c) {
   const input = document.getElementById("contrato-id");
-  input.value = `${c.id} - ${c.fornecedor ? c.fornecedor.name : ""}`;
+  input.value = formatarContratoCompacto(c);
 
   const printEl = document.getElementById("contrato-id-print");
-  if (printEl) printEl.textContent = c.id;
+  if (printEl) printEl.textContent = formatarContratoVisual(c.id);
 
   const medList = document.getElementById("medicao-numero").nextElementSibling;
   document.getElementById("medicao-numero").value = "";
@@ -982,7 +1046,7 @@ function selecionarContrato(c) {
 function selecionarContratoPorInput(input) {
   const val = input.value;
   if (!val || !dados.contratos) return;
-  const id = val.split(" - ")[0];
+  const id = extrairContratoIdVisual(val);
   const c = dados.contratos.find((x) => x.id == id);
   if (c) {
     selecionarContrato(c);
@@ -990,9 +1054,7 @@ function selecionarContratoPorInput(input) {
 }
 
 function filtrarMedicoes(input) {
-  const contratoId = (document.getElementById("contrato-id").value || "").split(
-    " - ",
-  )[0];
+  const contratoId = obterContratoIdSelecionado();
   const contrato = dados.contratos
     ? dados.contratos.find((c) => c.id == contratoId)
     : null;
@@ -1037,9 +1099,7 @@ function filtrarMedicoes(input) {
 }
 
 function selecionarMedicaoPorInput(input) {
-  const contratoId = (document.getElementById("contrato-id").value || "").split(
-    " - ",
-  )[0];
+  const contratoId = obterContratoIdSelecionado();
   const medicaoId = input.value;
   if (contratoId && medicaoId) {
     carregarMedicao(contratoId, medicaoId);
@@ -1049,9 +1109,7 @@ function selecionarMedicaoPorInput(input) {
 }
 
 function atualizarDadosCabecalho(input) {
-  const contratoId = (document.getElementById("contrato-id").value || "").split(
-    " - ",
-  )[0];
+  const contratoId = obterContratoIdSelecionado();
   const medicaoId = document.getElementById("medicao-numero").value;
 
   if (!contratoId || !medicaoId || !dados.contratos) return;
@@ -1100,9 +1158,7 @@ function atualizarDetalhesServico(input) {
 
     if (servico) {
       const obj = dadosServ[index];
-      const contratoId = (
-        document.getElementById("contrato-id").value || ""
-      ).split(" - ")[0];
+      const contratoId = obterContratoIdSelecionado();
       const medicaoId = document.getElementById("medicao-numero").value;
 
       obj.idServ = servico.idServ;
@@ -1292,7 +1348,7 @@ function carregarMedicao(contratoId, medicaoId) {
     document.getElementById("endereco-pagante-data").textContent =
       p.endereco || "";
 
-  updateField("obra-contrato-data", contrato.obra);
+  updateField("obra-contrato-data", formatarObraVisual(contrato.obra));
   updateField("endereco-obra-data", contrato.enderecoObra);
 
   servicosContrato = contrato.servicos;
@@ -1442,9 +1498,7 @@ function carregarMedicao(contratoId, medicaoId) {
 }
 
 function atualizarPopupSaldo() {
-  const contratoId = (document.getElementById("contrato-id").value || "").split(
-    " - ",
-  )[0];
+  const contratoId = obterContratoIdSelecionado();
   if (!contratoId || !dados.contratos) return;
   const contrato = dados.contratos.find((c) => c.id == contratoId);
   if (!contrato) return;
@@ -1489,9 +1543,7 @@ function atualizarPopupSaldo() {
 }
 
 function abrirModalSaldo() {
-  const contratoId = (document.getElementById("contrato-id").value || "").split(
-    " - ",
-  )[0];
+  const contratoId = obterContratoIdSelecionado();
   if (!contratoId || !dados.contratos) return;
   const contrato = dados.contratos.find((c) => c.id == contratoId);
   if (!contrato) return;
@@ -1564,9 +1616,7 @@ function toggleAllSaldo(source) {
 }
 
 function adicionarSelecionadosSaldo() {
-  const contratoId = (document.getElementById("contrato-id").value || "").split(
-    " - ",
-  )[0];
+  const contratoId = obterContratoIdSelecionado();
   if (!contratoId || !dados.contratos) return;
   const contrato = dados.contratos.find((c) => c.id == contratoId);
   if (!contrato) return;
@@ -1669,9 +1719,7 @@ function adicionarSelecionadosSaldo() {
 }
 
 function calcularTotais() {
-  const contratoId = (document.getElementById("contrato-id").value || "").split(
-    " - ",
-  )[0];
+  const contratoId = obterContratoIdSelecionado();
   if (!contratoId || !dados.contratos) return;
 
   const contrato = dados.contratos.find((c) => c.id == contratoId);
@@ -1899,11 +1947,9 @@ function atualizarVisualizacao() {
 
     if (cId) {
       const cObj = dados.contratos.find((x) => x.id == cId);
-      cInput.value = cObj
-        ? `${cObj.id} - ${cObj.fornecedor ? cObj.fornecedor.name : ""}`
-        : cId;
+      cInput.value = cObj ? formatarContratoCompacto(cObj) : formatarContratoVisual(cId);
       const printEl = document.getElementById("contrato-id-print");
-      if (printEl) printEl.textContent = cId;
+      if (printEl) printEl.textContent = formatarContratoVisual(cId);
     } else {
       cInput.value = "";
     }
