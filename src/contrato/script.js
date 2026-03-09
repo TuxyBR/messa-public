@@ -6,7 +6,7 @@ var i = 0;
 var medicaoAtualAprovada = false;
 const tbody = document.querySelector("tbody");
 const APIC =
-  "https://script.google.com/macros/s/AKfycbwypwReJsJd2WWh0d4YZozqahkHEG_aD2aA0X7blXlJB_FbPGvBo2WPWABrWQhzwyltWg/exec";
+  "https://script.google.com/macros/s/AKfycbyz2rvWZCg4JKaK_v3ySa_FB7LaAcrJ29L67_JsItpLfa2I8ilXatBbmsc0NTy2X31tdg/exec";
 const APIFluxo = "https://script.google.com/macros/s/AKfycbwakyWjmPenEHt_iRRllU9t_3hUB4NgcBSZh-EUnk1OKdRS4hGlPZk7Fs3Wb_ow7JsnSA/exec";
 const formatarMoeda = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -27,10 +27,10 @@ let usuarioPermitido = false;
 
 function verificarPermissaoUsuario() {
   //temporario para testes
-  // const btn = document.getElementById("btn-aprovar");
-  // if (btn) btn.style.display = "";
-  // usuarioPermitido = true;
-  // return
+  const btn = document.getElementById("btn-aprovar");
+  if (btn) btn.style.display = "";
+  usuarioPermitido = true;
+  return
   //temporario para testes
   if (typeof google !== "undefined" && google.script) {
     google.script.run
@@ -52,6 +52,13 @@ function verificarPermissaoUsuario() {
 let diffPendente = null;
 let pagamentosQueue = [];
 let pagamentosExtras = []; // Armazena { contratoId, medicaoId, banco, nf }
+
+function enviarPostSemPreflight(url, payload) {
+  return fetch(url, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
 
 function SalvarDados() {
   const diff = extrairAlteracoes();
@@ -169,20 +176,16 @@ function enviarDadosParaAPI(diff, listaExtras) {
     style: { background: "#2196F3" },
   }).showToast();
 
-  fetch(APIC, {
-    method: "POST",
-    body: JSON.stringify(diff),
-  })
+  enviarPostSemPreflight(APIC, diff)
     .then((r) => (r.ok ? r.text() : Promise.reject(r.statusText)))
     .then((res) => {
       console.log("Salvo:", res);
 
       if (pagamentosFluxo.length > 0) {
         pagamentosFluxo.forEach((p) => {
-          fetch(APIFluxo, {
-            method: "POST",
-            body: JSON.stringify(p),
-          }).catch((e) => console.error("Erro fluxo:", e));
+          enviarPostSemPreflight(APIFluxo, p).catch((e) =>
+            console.error("Erro fluxo:", e),
+          );
         });
       }
 
