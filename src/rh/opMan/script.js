@@ -1,5 +1,3 @@
-const APIC = "https://script.google.com/macros/s/";
-
 const CACHE_KEY = "app_dados_cache";
 const CACHE_TIME_KEY = "app_dados_cache_time";
 const CACHE_LOCAL_KEY = "app_dados_local_changes";
@@ -7,11 +5,14 @@ const CACHE_DRAFT_KEY = "op_nf_draft_cache_v1";
 const CACHE_REFERENCIAS_KEY = "op_referencias_cache_v1";
 const CACHE_REFERENCIAS_TIME_KEY = "op_referencias_cache_time_v1";
 const CACHE_REFERENCIAS_MAX_AGE_MS = 1000 * 60 * 60 * 12;
-const API_SALVAR_NF_AVISTA = "https://script.google.com/macros/s/AKfycbwRAK1EAWqSuKU5nRDtDfIApik_KCTkKTbTsRhuhMqW8ssJlt4pmhISL_AsbGknJ1Fu/exec?modo=nf_avista";
+
+const API_SALVAR_FINANCEIRO = "https://script.google.com/macros/s/AKfycbzzJLCNOBEvxJxv2TL4T3DPqwgNo-M4t8V9851y9Sq-N4su4nqmlnWL20lgwpqBow-7/exec?modo=nf_avista";
+const API_SALVAR_FLUXO = "https://script.google.com/macros/s/AKfycbwakyWjmPenEHt_iRRllU9t_3hUB4NgcBSZh-EUnk1OKdRS4hGlPZk7Fs3Wb_ow7JsnSA/exec";
 const API_REFERENCIA_FLUXO = "https://script.google.com/macros/s/AKfycbxgR6d6FU0riIt5wEtD3Nm1kPjuRyO5gl1e-TnyypjRBWki4sPuFGRbXosiLm5jJPOZ/exec?sheet=db_fluxo";
 const API_REFERENCIA_CUSTOS_BASE = "https://script.google.com/macros/s/AKfycbyYvvaSGMslJ6tT7oWrZewi7Cwx6lJ1IVvfkpJj-a-mczTbGmd8fkJwJMeuT-7gUybEvw/exec";
 const API_REFERENCIA_CADASTRO = "https://script.google.com/macros/s/AKfycbyz2rvWZCg4JKaK_v3ySa_FB7LaAcrJ29L67_JsItpLfa2I8ilXatBbmsc0NTy2X31tdg/exec";
 const API_REFERENCIA_ADMINISTRATIVO = "https://script.google.com/macros/s/AKfycbyAntnFWyzJaaGDJRWlYdVFinD1XPoc3b3igvYSpRVn6cDZ4d4LbGoFNWOUIbrAShF8/exec?script=cadastroItensAdministrativos";
+
 const tbody = document.querySelector("tbody");
 const somaTotalEl = document.getElementById("soma-total");
 const camposCabecalho = document.querySelectorAll("[data-field]");
@@ -19,7 +20,9 @@ const medicaoAtualAprovada = false;
 const refStatusState = {
   obra: "idle",
   pagador: "idle",
+  fornecedor: "idle",
   bancos: "idle",
+  categoria: "idle",
   administrativo: "idle",
   material: "idle",
   servico: "idle",
@@ -129,7 +132,9 @@ function renderizarStatusReferencias() {
   aplicarClasseStatusRef("status-obra", refStatusState.obra);
   aplicarClasseStatusRef("status-atividade", refStatusState.obra);
   aplicarClasseStatusRef("status-pagador", refStatusState.pagador);
+  aplicarClasseStatusRef("status-fornecedor", refStatusState.fornecedor);
   aplicarClasseStatusRef("status-bancos", refStatusState.bancos);
+  aplicarClasseStatusRef("status-categoria", refStatusState.categoria);
   aplicarClasseStatusRef("status-descricao", statusCompostoDescricao());
 }
 
@@ -142,7 +147,9 @@ function definirStatusReferencia(chave, status) {
 function definirStatusReferenciasPorDadosEmCache() {
   if (toArray(dadosReferencia.obra).length) definirStatusReferencia("obra", "done");
   if (toArray(dadosReferencia.pagador).length) definirStatusReferencia("pagador", "done");
+  if (toArray(dadosReferencia.fornecedor).length) definirStatusReferencia("fornecedor", "done");
   if (toArray(dadosReferencia.bancos).length) definirStatusReferencia("bancos", "done");
+  if (toArray(dadosReferencia.categoria).length) definirStatusReferencia("categoria", "done");
   if (toArray(dadosReferencia.administrativo).length) definirStatusReferencia("administrativo", "done");
   if (toArray(dadosReferencia.material).length) definirStatusReferencia("material", "done");
   if (toArray(dadosReferencia.servico).length) definirStatusReferencia("servico", "done");
@@ -487,7 +494,7 @@ function aplicarAtualizacaoReferenciasParcial(patch = {}, origem = "", concluida
 }
 
 async function atualizarReferenciasEmParaleloProgressivo() {
-  ["obra", "pagador", "bancos", "administrativo", "material", "servico", "equipamento"].forEach((k) =>
+  ["obra", "pagador", "fornecedor", "bancos", "categoria", "administrativo", "material", "servico", "equipamento"].forEach((k) =>
     definirStatusReferencia(k, "loading")
   );
 
@@ -515,12 +522,13 @@ async function atualizarReferenciasEmParaleloProgressivo() {
             categoria: fluxo.categoria ?? [],
           },
           "fluxo",
-          ["bancos"]
+          ["bancos", "categoria"]
         );
       })
       .catch((error) => {
         console.warn("Falha ao carregar referencias de fluxo:", error);
         definirStatusReferencia("bancos", "error");
+        definirStatusReferencia("categoria", "error");
       }),
     carregarDadosReferenciaCadastro()
       .then((cadastro) => {
@@ -530,12 +538,13 @@ async function atualizarReferenciasEmParaleloProgressivo() {
             fornecedor: cadastro.fornecedores.length ? cadastro.fornecedores : payloadLocal.fornecedor,
           },
           "cadastro",
-          ["pagador"]
+          ["pagador", "fornecedor"]
         );
       })
       .catch((error) => {
         console.warn("Falha ao carregar cadastro (pagadores/fornecedores):", error);
         definirStatusReferencia("pagador", "error");
+        definirStatusReferencia("fornecedor", "error");
       }),
     carregarDadosReferenciaAdministrativos()
       .then((administrativoApi) => {
@@ -656,7 +665,40 @@ function respostaApiSucesso(respostaHttp, body) {
   return true;
 }
 
+function montarPayloadSaidaManual(idOp) {
+  const idOpFormatado = String(idOp ?? "").trim();
+  return {
+    tipo: "saida",
+    data: dados.data,
+    categoria: dados.categoria,
+    banco: dados.banco,
+    valorTotal: calcularSomaTotalItens(),
+    descricao: `OP Manual: ${idOpFormatado} - NF: ${dados.nf}`,
+    fornecedor: dados.fornecedor,
+  };
+}
+
+async function enviarPostJson(url, payload) {
+  const resposta = await fetch(url, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const texto = await resposta.text();
+  let body = texto;
+  try {
+    body = texto ? JSON.parse(texto) : null;
+  } catch (_e) {
+    body = texto;
+  }
+
+  return { resposta, body };
+}
+
 async function SalvarDados() {
+  const botaoSalvar = document.getElementById("btn-salvar");
+  if (botaoSalvar?.disabled) return;
+
   if (!temPeloMenosUmItemAdicionado()) {
     Toastify({
       text: "Adicione ao menos 1 item antes de salvar.",
@@ -698,26 +740,39 @@ async function SalvarDados() {
   };
 
   console.log("Payload que seria enviado para a API:", payload);
+  definirEstadoLoadingBotaoSalvar(true);
   try {
-    const resposta = await fetch(API_SALVAR_NF_AVISTA, {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-
-    const texto = await resposta.text();
-    let body = texto;
-    try {
-      body = texto ? JSON.parse(texto) : null;
-    } catch (_e) {
-      body = texto;
-    }
+    const { resposta, body } = await enviarPostJson(API_SALVAR_FINANCEIRO, payload);
 
     if (!respostaApiSucesso(resposta, body)) {
-      throw new Error("Resposta negativa da API.");
+      throw new Error("Falha ao salvar no financeiro.");
     }
 
     Toastify({
-      text: "Dados salvos com sucesso.",
+      text: "Dados salvos no financeiro.",
+      duration: 2500,
+      style: { background: "#00aa25" },
+    }).showToast();
+
+    const idOp = body?.idOp;
+    if (idOp === undefined || idOp === null || String(idOp).trim() === "") {
+      throw new Error("Resposta da API sem idOp.");
+    }
+
+    const payloadSaidaManual = montarPayloadSaidaManual(idOp);
+    console.log("Payload de saida manual:", payloadSaidaManual);
+
+    const { resposta: respostaSaida, body: bodySaida } = await enviarPostJson(
+      API_SALVAR_FLUXO,
+      payloadSaidaManual
+    );
+
+    if (!respostaApiSucesso(respostaSaida, bodySaida)) {
+      throw new Error("Falha ao salvar no fluxo.");
+    }
+
+    Toastify({
+      text: "Dados salvos no fluxo.",
       duration: 2500,
       style: { background: "#00aa25" },
     }).showToast();
@@ -725,10 +780,12 @@ async function SalvarDados() {
   } catch (error) {
     console.error("Erro ao salvar dados:", error);
     Toastify({
-      text: "Falha ao salvar dados na API.",
+      text: error?.message || "Falha ao salvar dados na API.",
       duration: 3500,
       style: { background: "#bd1717" },
     }).showToast();
+  } finally {
+    definirEstadoLoadingBotaoSalvar(false);
   }
 }
 
@@ -1599,6 +1656,19 @@ function definirEstadoLoadingBotaoAtualizar(loading) {
   botao.disabled = Boolean(loading);
   botao.classList.toggle("is-loading", Boolean(loading));
   botao.textContent = loading ? "Atualizando..." : botao.dataset.originalText;
+}
+
+function definirEstadoLoadingBotaoSalvar(loading) {
+  const botao = document.getElementById("btn-salvar");
+  if (!botao) return;
+
+  if (!botao.dataset.originalText) {
+    botao.dataset.originalText = botao.textContent.trim();
+  }
+
+  botao.disabled = Boolean(loading);
+  botao.classList.toggle("is-loading", Boolean(loading));
+  botao.textContent = loading ? "Salvando..." : botao.dataset.originalText;
 }
 
 async function forcarAtualizacaoReferencias() {
