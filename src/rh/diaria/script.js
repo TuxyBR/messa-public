@@ -142,6 +142,10 @@ function salvar() {
 
       fetch(APIFluxo, {
         method: "POST",
+        headers: {
+          'Authorization': 'Bearer ' + oauth,
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(payload),
       })
         .then((r) => (r.ok ? r.text() : Promise.reject(r.statusText)))
@@ -168,6 +172,10 @@ function salvar() {
 
       fetch(APIFin, {
         method: "POST",
+        headers: {
+          'Authorization': 'Bearer ' + oauth,
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(payload),
       })
         .then((r) => (r.ok ? r.text() : Promise.reject(r.statusText)))
@@ -194,6 +202,10 @@ function salvar() {
 
       fetch(APIFunc, {
         method: "POST",
+        headers: {
+          'Authorization': 'Bearer ' + oauth,
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(payload),
       })
         .then((r) => (r.ok ? r.text() : Promise.reject(r.statusText)))
