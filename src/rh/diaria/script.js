@@ -398,7 +398,7 @@ if (true) {
       }).showToast();
       console.warn("Falha na API:", err);
     });
-
+  console.log(`utilizando ${oauth}`)
   fetch(APIFunc, {headers: {'Authorization': 'Bearer ' + oauth ?? ''}})
     .then((r) => (r.ok ? r.json() : Promise.reject(r.statusText)))
     .then((json) => {
