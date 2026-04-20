@@ -1,11 +1,12 @@
 const APIC =
-  "https://script.google.com/macros/s/AKfycbxgR6d6FU0riIt5wEtD3Nm1kPjuRyO5gl1e-TnyypjRBWki4sPuFGRbXosiLm5jJPOZ/exec?sheet=db_fluxo";
+  "https://script.google.com/macros/s/AKfycbxgR6d6FU0riIt5wEtD3Nm1kPjuRyO5gl1e-TnyypjRBWki4sPuFGRbXosiLm5jJPOZ/exec?sheet=db_fluxo";//db_dashboard   -> vai ser a ultima a ser atualizada
 const APIFunc =
-  "https://script.google.com/macros/s/AKfycbyP5WM6Avgiv6fHjWfLfwPSBtpN4O229QrYH7bzrohGED1tSDzKuRzfDamaH1WHcrCO/exec";
+  // "https://script.google.com/macros/s/AKfycbyP5WM6Avgiv6fHjWfLfwPSBtpN4O229QrYH7bzrohGED1tSDzKuRzfDamaH1WHcrCO/exec";//rh
+  "https://script.google.com/a/macros/construtoramessa.com.br/s/AKfycbwIhDEUdmQD2mFuuqLBb8GVqjGaYQ4VfkrbC9G1J6nQkkD1LVR9-FpxmbyTLCE9CiPa/exec";//rh
 const APIFluxo =
-  "https://script.google.com/macros/s/AKfycbxFAaFl9GmtzC53rNYDQX2PxyWY6EnC5ZAVLTG__eMQLYSljXOTfU20fSvF6YegNuQ6OA/exec";
+  "https://script.google.com/a/macros/construtoramessa.com.br/s/AKfycbwOklgjfvyQO4mrVA9h5hquZC0CP6Tlga8CG2OdDzhJltTgj7rCw5OMyGzoVTgD8QPBuQ/exec";//fluxo
 const APIFin =
-  "https://script.google.com/macros/s/AKfycbzfd_UlE2AECViyL0DZuh3a2BVely4HePD_3w6N8TeRYpVqeM9v6I8AwqUbnqgcwUKQ/exec";
+  "https://script.google.com/a/macros/construtoramessa.com.br/s/AKfycbz9qI7C33qhQVH1L4SmtTjBu2u-gt-9ZHY0bzcibegC66QBYafr1G9jH4v5lQ91IAet/exec";//financeiro
 const CACHE_KEY = "cache_func";
 const cached = localStorage.getItem(CACHE_KEY);
 const table = document.getElementById("funcionarios");
@@ -143,7 +144,7 @@ function salvar() {
       fetch(APIFluxo, {
         method: "POST",
         headers: {
-          'Authorization': 'Bearer ' + oauth,
+          'Authorization': 'Bearer ' + oauth ?? '',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload),
@@ -173,7 +174,7 @@ function salvar() {
       fetch(APIFin, {
         method: "POST",
         headers: {
-          'Authorization': 'Bearer ' + oauth,
+          'Authorization': 'Bearer ' + oauth ?? '',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload),
@@ -203,7 +204,7 @@ function salvar() {
       fetch(APIFunc, {
         method: "POST",
         headers: {
-          'Authorization': 'Bearer ' + oauth,
+          'Authorization': 'Bearer ' + oauth ?? '',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload),
