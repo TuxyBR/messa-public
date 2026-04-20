@@ -399,7 +399,7 @@ if (true) {
       console.warn("Falha na API:", err);
     });
 
-  fetch(APIFunc)
+  fetch(APIFunc, {headers: {'Authorization': 'Bearer ' + oauth ?? ''}})
     .then((r) => (r.ok ? r.json() : Promise.reject(r.statusText)))
     .then((json) => {
       console.log(`took ${fmtf(performance.now() - start)}ms to get func`);
