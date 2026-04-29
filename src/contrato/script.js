@@ -20,6 +20,9 @@ const EMAILS_PERMITIDOS = [
   "gabriel.correa92@gmail.com",
   "g.messapec@gmail.com",
   "g.messa.construtoramessa@gmail.com",
+  "r.lopes@construtoramessa.com.br",
+  "a.lopes@construtoramessa.com.br",
+  "g.messa@construtoramessa.com.br",
 ];
 let userMail = "";
 let userName = "";
